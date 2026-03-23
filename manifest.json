@@ -1,23 +1,12 @@
 {
   "short_name": "Titan",
-  "name": "Titan Tracker: 93kg Protocol",
+  "name": "Titan Tracker",
   "icons": [
-    {
-      "src": "icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "maskable"
-    },
-    {
-      "src": "icon-512.png",
-      "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "any"
-    }
+    { "src": "icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "icon-512.png", "type": "image/png", "sizes": "512x512" }
   ],
   "start_url": ".",
   "display": "standalone",
   "theme_color": "#070707",
-  "background_color": "#070707",
-  "orientation": "portrait"
+  "background_color": "#070707"
 }
