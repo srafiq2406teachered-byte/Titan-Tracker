@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Clock, Flame, Scale, Trophy, ChevronRight, Activity, Dumbbell } from 'lucide-react';
+import { Check, Clock, Flame, Scale, Trophy, Activity } from 'lucide-react';
 
 const TitanTracker = () => {
   const [view, setView] = useState('workout'); 
@@ -10,12 +10,12 @@ const TitanTracker = () => {
   const [showSummary, setShowSummary] = useState(false);
 
   const workout = [
-    { id: "A1", name: "Leg Press", sets: 3, reps: 10, color: "from-orange-500 to-red-500" },
-    { id: "A2", name: "Lat Pulldown", sets: 3, reps: 12, color: "from-blue-500 to-cyan-500" },
-    { id: "B1", name: "Chest Press", sets: 3, reps: 10, color: "from-purple-500 to-pink-500" },
-    { id: "B2", name: "Seated Leg Curl", sets: 3, reps: 15, color: "from-orange-500 to-amber-500" },
-    { id: "C1", name: "Cable Row", sets: 3, reps: 12, color: "from-emerald-500 to-teal-500" },
-    { id: "C2", name: "DB Shoulder Press", sets: 3, reps: 12, color: "from-blue-600 to-indigo-600" }
+    { id: "A1", name: "Leg Press", sets: 3, reps: 10 },
+    { id: "A2", name: "Lat Pulldown", sets: 3, reps: 12 },
+    { id: "B1", name: "Chest Press", sets: 3, reps: 10 },
+    { id: "B2", name: "Seated Leg Curl", sets: 3, reps: 15 },
+    { id: "C1", name: "Cable Row", sets: 3, reps: 12 },
+    { id: "C2", name: "DB Shoulder Press", sets: 3, reps: 12 }
   ];
 
   const [session, setSession] = useState(() => {
@@ -31,11 +31,13 @@ const TitanTracker = () => {
     return initial;
   });
 
-  useEffect(() => { localStorage.setItem('titan-w-sets', JSON.stringify(session)); }, [session]);
+  useEffect(() => { 
+    localStorage.setItem('titan-w-sets', JSON.stringify(session)); 
+  }, [session]);
 
   const adjustSetWeight = (exId, setIdx, delta) => {
     const newWeights = [...session[exId]];
-    newWeights[setIdx] = Math.max(0, (newWeights[setIdx] || 0) + delta);
+    newWeights[setIdx] = Math.max(0, Math.round(((newWeights[setIdx] || 0) + delta) * 10) / 10);
     setSession({ ...session, [exId]: newWeights });
   };
 
@@ -55,29 +57,29 @@ const TitanTracker = () => {
       ts: new Date().toISOString(), 
       id: Date.now() 
     };
-    setHistory([entry, ...history].slice(0, 30));
-    localStorage.setItem('titan-h', JSON.stringify([entry, ...history]));
+    const newHistory = [entry, ...history].slice(0, 30);
+    setHistory(newHistory);
+    localStorage.setItem('titan-h', JSON.stringify(newHistory));
     setShowSummary(true);
   };
 
-  useEffect(() => { if (timeLeft > 0) { const t = setTimeout(() => setTimeLeft(timeLeft - 1), 1000); return () => clearTimeout(t); } }, [timeLeft]);
+  useEffect(() => { 
+    if (timeLeft > 0) { 
+      const t = setTimeout(() => setTimeLeft(timeLeft - 1), 1000); 
+      return () => clearTimeout(t); 
+    } 
+  }, [timeLeft]);
 
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-[#000] text-zinc-100 font-sans selection:bg-orange-500/30">
-      
-      {/* Header Area */}
+    <div className="max-w-md mx-auto min-h-screen bg-[#000] text-zinc-100 font-sans pb-10">
       <header className="p-6 pt-10 flex justify-between items-end">
         <div>
           <h1 className="text-4xl font-black tracking-tighter italic uppercase text-white leading-none">Titan</h1>
           <p className="text-[10px] uppercase tracking-[0.4em] text-zinc-500 font-bold mt-1">Performance Protocol</p>
         </div>
-        <div className="flex flex-col items-end">
-           <Activity size={20} className="text-orange-500 animate-pulse mb-1" />
-           <span className="text-xs font-mono font-bold text-zinc-400">LIVE_SESSION</span>
-        </div>
+        <Activity size={20} className="text-orange-500 mb-1" />
       </header>
 
-      {/* Modern Tab Bar */}
       <div className="px-6 mb-8">
         <div className="flex p-1 bg-zinc-900/50 rounded-2xl border border-zinc-800/50 backdrop-blur-md">
-          <button onClick={()=>
+          <button onClick={() => setView('workout')} className={`flex-1 py-3 rounded-xl text-xs font-bold
