@@ -6,14 +6,18 @@ const App = () => {
   const [session, setSession] = useState({});
   const [timeLeft, setTimeLeft] = useState(0);
 
+  // --- DOHA 6-DAY FULL PROTOCOL ---
   const day = new Date().getDay();
   const workouts = {
-    1: { name: "Push Alpha", ex: ["Chest Press", "Shoulder Press"] },
-    2: { name: "Pull Alpha", ex: ["Lat Pulldown", "Rows"] },
-    3: { name: "Titan Legs", ex: ["Leg Press", "Leg Curls"] },
-    0: { name: "Rest & Recovery", ex: [] }
+    1: { name: "Push Alpha", ex: ["Chest Press", "Shoulder Press", "Tricep Pushdown"] },
+    2: { name: "Pull Alpha", ex: ["Lat Pulldown", "Cable Rows", "Bicep Curls"] },
+    3: { name: "Titan Legs", ex: ["Leg Press", "Leg Curls", "Calf Raises"] },
+    4: { name: "Push Beta", ex: ["Incline Press", "Lateral Raises", "Dips"] },
+    5: { name: "Pull Beta", ex: ["Pull Ups", "Hammer Curls", "Face Pulls"] },
+    6: { name: "Titan Legs", ex: ["Squats", "Leg Extensions", "Seated Curls"] },
+    0: { name: "Active Recovery", ex: ["Stretching", "Light Walk"] }
   };
-  const current = workouts[day] || workouts[1];
+  const current = workouts[day] || workouts[0];
 
   const updateWeight = (exName, setIdx, val) => {
     const updated = [...(session[exName] || [40, 40, 40])]; 
@@ -23,7 +27,7 @@ const App = () => {
 
   const saveWorkout = () => {
     const entry = { id: Date.now(), name: current.name, date: new Date().toLocaleDateString(), data: session };
-    const newHistory = [entry, ...history].slice(0, 10);
+    const newHistory = [entry, ...history].slice(0, 15);
     setHistory(newHistory);
     localStorage.setItem('titan-h', JSON.stringify(newHistory));
     setView('history');
@@ -36,30 +40,30 @@ const App = () => {
     }
   }, [timeLeft]);
 
-  // --- CLEAN SYSTEM UI STYLES ---
+  // --- STEALTH UI STYLES ---
   const s = {
-    body: { backgroundColor: '#f4f4f7', minHeight: '100vh', color: '#1a1a1a', padding: '20px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' },
-    card: { backgroundColor: '#ffffff', borderRadius: '16px', padding: '20px', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #e1e1e8' },
-    input: { backgroundColor: '#f9f9fb', color: '#1a1a1a', border: '1px solid #d1d1d6', borderRadius: '8px', padding: '12px', width: '75px', textAlign: 'center', fontSize: '16px' },
-    btnPrimary: { backgroundColor: '#007aff', color: 'white', border: 'none', borderRadius: '12px', padding: '16px', width: '100%', fontWeight: '600', fontSize: '16px', cursor: 'pointer', marginTop: '10px' },
-    navBtn: (active) => ({ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', backgroundColor: active ? '#ffffff' : 'transparent', color: active ? '#007aff' : '#8e8e93', fontWeight: '600', boxShadow: active ? '0 2px 4px rgba(0,0,0,0.1)' : 'none' })
+    body: { backgroundColor: '#070707', minHeight: '100vh', color: '#ffffff', padding: '20px', fontFamily: 'sans-serif' },
+    card: { backgroundColor: '#111', borderRadius: '24px', padding: '20px', marginBottom: '16px', border: '1px solid #222' },
+    input: { backgroundColor: '#000', color: '#EA580C', border: '1px solid #333', borderRadius: '12px', padding: '12px', width: '75px', textAlign: 'center', fontSize: '18px', fontWeight: 'bold' },
+    btnPrimary: { backgroundColor: '#EA580C', color: 'white', border: 'none', borderRadius: '20px', padding: '18px', width: '100%', fontWeight: '900', fontSize: '16px', textTransform: 'uppercase', marginTop: '10px' },
+    navBtn: (active) => ({ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', backgroundColor: active ? '#EA580C' : '#1a1a1a', color: 'white', fontWeight: '900', fontSize: '11px', textTransform: 'uppercase' })
   };
 
   return (
     <div style={s.body}>
       <header style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px', alignItems: 'center' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '800', letterSpacing: '-0.5px' }}>{current.name}</h1>
-          <p style={{ margin: 0, fontSize: '12px', color: '#8e8e93' }}>{new Date().toDateString()}</p>
+          <h1 style={{ margin: 0, fontSize: '24px', fontStyle: 'italic', fontWeight: '900', textTransform: 'uppercase' }}>{current.name}</h1>
+          <p style={{ margin: 0, fontSize: '10px', color: '#555', fontWeight: 'bold' }}>PROTOCOL: DOHA_v2</p>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '18px', fontWeight: '700', color: '#007aff' }}>93.0kg</div>
-          <div style={{ fontSize: '10px', color: '#8e8e93', fontWeight: 'bold', textTransform: 'uppercase' }}>Target</div>
+          <div style={{ fontSize: '20px', fontWeight: '900', color: '#06B6D4', fontStyle: 'italic' }}>93.0kg</div>
+          <div style={{ fontSize: '9px', color: '#555', fontWeight: 'bold' }}>TARGET MASS</div>
         </div>
       </header>
 
-      <nav style={{ display: 'flex', backgroundColor: '#e3e3e8', padding: '4px', borderRadius: '12px', marginBottom: '24px' }}>
-        <button onClick={() => setView('workout')} style={s.navBtn(view === 'workout')}>Workout</button>
+      <nav style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+        <button onClick={() => setView('workout')} style={s.navBtn(view === 'workout')}>The Protocol</button>
         <button onClick={() => setView('history')} style={s.navBtn(view === 'history')}>Logbook</button>
       </nav>
 
@@ -67,39 +71,39 @@ const App = () => {
         <div>
           {current.ex.map(ex => (
             <div key={ex} style={s.card}>
-              <h3 style={{ margin: '0 0 16px 0', fontSize: '17px', fontWeight: '700' }}>{ex}</h3>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '900', fontStyle: 'italic', color: '#EA580C', textTransform: 'uppercase' }}>{ex}</h3>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 {[0, 1, 2].map(i => (
                   <div key={i}>
-                    <label style={{ display: 'block', fontSize: '10px', color: '#8e8e93', textAlign: 'center', marginBottom: '4px', fontWeight: '600' }}>SET {i + 1}</label>
+                    <label style={{ display: 'block', fontSize: '9px', color: '#444', textAlign: 'center', marginBottom: '4px', fontWeight: '900' }}>SET {i + 1}</label>
                     <input type="number" style={s.input} value={session[ex]?.[i] || 40} onChange={(e) => updateWeight(ex, i, e.target.value)} />
                   </div>
                 ))}
               </div>
-              <button onClick={() => setTimeLeft(60)} style={{ background: 'none', border: 'none', color: '#007aff', fontSize: '13px', fontWeight: '600', marginTop: '16px', padding: 0, cursor: 'pointer' }}>Start 60s Rest</button>
+              <button onClick={() => setTimeLeft(60)} style={{ background: 'none', border: '1px solid #222', color: '#555', fontSize: '10px', fontWeight: 'bold', marginTop: '16px', padding: '8px 12px', borderRadius: '8px' }}>START 60S REST</button>
             </div>
           ))}
-          <button onClick={saveWorkout} style={s.btnPrimary}>Finish Session</button>
+          <button onClick={saveWorkout} style={s.btnPrimary}>Execute Session</button>
         </div>
       ) : (
         <div>
-          {history.length > 0 ? history.map(h => (
+          {history.map(h => (
             <div key={h.id} style={s.card}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ fontSize: '12px', color: '#8e8e93' }}>{h.date}</div>
-                  <div style={{ fontWeight: '700', fontSize: '16px' }}>{h.name}</div>
+                  <div style={{ fontSize: '10px', color: '#555' }}>{h.date}</div>
+                  <div style={{ fontWeight: '900', fontStyle: 'italic', color: '#EA580C' }}>{h.name}</div>
                 </div>
-                <div style={{ color: '#34c759', fontWeight: 'bold' }}>✓ Done</div>
+                <div style={{ color: '#06B6D4', fontWeight: '900' }}>SAVED</div>
               </div>
             </div>
-          )) : <div style={{ textAlign: 'center', padding: '40px', color: '#8e8e93' }}>No sessions logged yet.</div>}
+          ))}
         </div>
       )}
 
       {timeLeft > 0 && (
-        <div style={{ position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#1a1a1a', color: 'white', padding: '12px 24px', borderRadius: '40px', fontSize: '20px', fontWeight: 'bold', boxShadow: '0 4px 12px rgba(0,0,0,0.2)', zindex: 1000 }}>
-          Rest: {timeLeft}s
+        <div style={{ position: 'fixed', bottom: '40px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#fff', color: '#000', padding: '20px 50px', borderRadius: '30px', fontSize: '48px', fontWeight: '900', fontStyle: 'italic', boxShadow: '0 0 50px rgba(0,0,0,0.5)' }}>
+          {timeLeft}
         </div>
       )}
     </div>
