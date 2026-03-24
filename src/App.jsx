@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, Clock, RotateCcw, Dumbbell, History, Plus } from 'lucide-react';
+import { CheckCircle, Clock, RotateCcw, Dumbbell, History, Plus, ChevronRight } from 'lucide-react';
 
 const TitanTracker = () => {
   const [activeDay, setActiveDay] = useState(new Date().getDay());
@@ -10,13 +10,13 @@ const TitanTracker = () => {
   const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   
   const WORKOUTS = {
-    1: { name: "Push Protocol", color: "#f97316", ex: ["Chest Press", "Shoulder Press", "Triceps"] },
-    2: { name: "Pull Protocol", color: "#f97316", ex: ["Lat Pulldown", "Cable Row", "Bicep Curls"] },
-    3: { name: "Leg Protocol", color: "#f97316", ex: ["Leg Press", "Leg Curl", "Calf Raises"] },
-    4: { name: "Full Body Burn", color: "#f97316", ex: ["Squats", "Pushups", "Rows"] },
-    5: { name: "Upper Detail", color: "#f97316", ex: ["Lateral Raises", "Flyes", "Hammer Curls"] },
-    6: { name: "Metabolic/Cardio", color: "#f97316", ex: ["Stairmaster", "Incline Walk", "Plank"] },
-    0: { name: "Recovery", color: "#71717a", ex: ["Light Walk", "Stretch"] }
+    1: { name: "Push: Chest & Shoulders", ex: ["Chest Press Machine", "Shoulder Press Machine", "Lateral Raise Machine"] },
+    2: { name: "Pull: Back & Biceps", ex: ["Lat Pulldown", "Seated Row", "Bicep Curl Machine"] },
+    3: { name: "Legs: Quads & Hams", ex: ["Leg Press", "Leg Extension", "Leg Curl"] },
+    4: { name: "Full Body Burn", ex: ["Goblet Squat", "Incline Press", "Kettlebell Swing"] },
+    5: { name: "Upper Detail", ex: ["Pec Deck", "Face Pulls", "Tricep Pushdown"] },
+    6: { name: "Metabolic / Cardio", ex: ["Stairmaster", "Incline Walk", "Plank"] },
+    0: { name: "Active Recovery", ex: ["Light Walk", "Full Body Stretch"] }
   };
 
   useEffect(() => {
@@ -28,38 +28,52 @@ const TitanTracker = () => {
 
   const activeWorkout = WORKOUTS[activeDay] || WORKOUTS[0];
 
+  // UI THEME CONSTANTS
+  const THEME = {
+    black: '#000000',
+    zinc: '#121212',
+    border: '#27272a',
+    orange: '#FF6B00',
+    textMain: '#FFFFFF',
+    textDim: '#71717a'
+  };
+
   return (
-    <div style={{ backgroundColor: '#000', minHeight: '100vh', color: '#fff', fontFamily: 'sans-serif', padding: '20px' }}>
+    <div style={{ backgroundColor: THEME.black, minHeight: '100vh', color: THEME.textMain, fontFamily: '"Inter", sans-serif', padding: '20px', maxWidth: '500px', margin: '0 auto' }}>
       
-      {/* HEADER */}
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-        <div>
-          <h1 style={{ fontSize: '42px', fontWeight: '900', fontStyle: 'italic', margin: 0, letterSpacing: '-2px', color: '#f97316' }}>TITAN</h1>
-          <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#52525b', textTransform: 'uppercase', letterSpacing: '2px' }}>V3.0 // Active Performance</p>
+      {/* HEADER SECTION */}
+      <header style={{ marginBottom: '30px', paddingTop: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h1 style={{ fontSize: '38px', fontWeight: '900', fontStyle: 'italic', margin: 0, letterSpacing: '-2px', color: THEME.orange }}>TITAN</h1>
+          <div style={{ display: 'flex', gap: '8px', background: THEME.zinc, padding: '6px', borderRadius: '12px', border: `1px solid ${THEME.border}` }}>
+            <button onClick={() => setView('train')} style={{ background: view === 'train' ? THEME.orange : 'transparent', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}>
+              <Dumbbell size={20} color={view === 'train' ? THEME.black : THEME.textDim} />
+            </button>
+            <button onClick={() => setView('history')} style={{ background: view === 'history' ? THEME.orange : 'transparent', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}>
+              <History size={20} color={view === 'history' ? THEME.black : THEME.textDim} />
+            </button>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: '10px', background: '#18181b', padding: '8px', borderRadius: '16px' }}>
-          <Dumbbell color={view === 'train' ? '#f97316' : '#52525b'} onClick={() => setView('train')} />
-          <History color={view === 'history' ? '#f97316' : '#52525b'} onClick={() => setView('history')} />
-        </div>
+        <p style={{ fontSize: '10px', fontWeight: '800', color: THEME.textDim, textTransform: 'uppercase', letterSpacing: '3px', marginTop: '4px' }}>Level 43 // Fat Burn Protocol</p>
       </header>
 
-      {/* DAY PICKER */}
-      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '30px', paddingBottom: '10px' }}>
+      {/* HORIZONTAL DAY SELECTOR */}
+      <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', marginBottom: '30px', paddingBottom: '10px', scrollbarWidth: 'none' }}>
         {DAYS.map((day, i) => (
           <button 
             key={day}
-            onClick={() => setActiveDay(i)}
+            onClick={() => {setActiveDay(i); setCompletedSets({});}}
             style={{
-              padding: '10px 18px',
-              borderRadius: '12px',
-              border: 'none',
+              padding: '12px 20px',
+              borderRadius: '14px',
+              border: activeDay === i ? `2px solid ${THEME.orange}` : `1px solid ${THEME.border}`,
               fontSize: '11px',
               fontWeight: '900',
               textTransform: 'uppercase',
-              backgroundColor: activeDay === i ? '#f97316' : '#18181b',
-              color: activeDay === i ? '#000' : '#71717a',
+              backgroundColor: activeDay === i ? THEME.orange : 'transparent',
+              color: activeDay === i ? THEME.black : THEME.textDim,
               cursor: 'pointer',
-              whiteSpace: 'nowrap'
+              transition: 'all 0.2s'
             }}
           >
             {day.substring(0, 3)}
@@ -67,61 +81,98 @@ const TitanTracker = () => {
         ))}
       </div>
 
-      {/* WORKOUT CARDS */}
+      {/* MAIN CONTENT */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <div style={{ borderLeft: '4px solid #f97316', paddingLeft: '15px' }}>
-            <h2 style={{ fontSize: '10px', color: '#52525b', textTransform: 'uppercase', margin: 0 }}>Current Target</h2>
-            <p style={{ fontSize: '20px', fontWeight: '900', fontStyle: 'italic', margin: 0 }}>{activeWorkout.name}</p>
+        <div style={{ borderLeft: `4px solid ${THEME.orange}`, paddingLeft: '15px', marginBottom: '10px' }}>
+            <h2 style={{ fontSize: '11px', color: THEME.textDim, textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '1px' }}>Current Target</h2>
+            <p style={{ fontSize: '24px', fontWeight: '900', fontStyle: 'italic', margin: 0, textTransform: 'uppercase' }}>{activeWorkout.name}</p>
         </div>
 
         {activeWorkout.ex.map((name, idx) => (
-          <div key={idx} style={{ background: '#09090b', border: '1px solid #18181b', borderRadius: '24px', padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: '900', textTransform: 'uppercase', margin: 0 }}>{name}</h3>
-              <div style={{ color: '#f97316', fontSize: '12px', fontWeight: 'bold' }}>3 SETS</div>
+          <div key={idx} style={{ background: THEME.zinc, borderRadius: '28px', padding: '24px', border: `1px solid ${THEME.border}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '900', textTransform: 'uppercase', fontStyle: 'italic', margin: 0, color: THEME.textMain }}>{name}</h3>
+              <div style={{ fontSize: '10px', fontWeight: 'bold', color: THEME.orange, background: 'rgba(255, 107, 0, 0.1)', padding: '4px 10px', borderRadius: '8px' }}>12 REPS</div>
             </div>
             
-            <div style={{ display: 'flex', gap: '10px' }}>
-              {[1, 2, 3].map(set => (
-                <button 
-                  key={set}
-                  onClick={() => {
-                    const key = `${name}-${set}`;
-                    setCompletedSets({...completedSets, [key]: !completedSets[key]});
-                    if(!completedSets[key]) setTimeLeft(60);
-                  }}
-                  style={{
-                    flex: 1,
-                    height: '50px',
-                    borderRadius: '12px',
-                    border: '2px solid #18181b',
-                    background: completedSets[`${name}-${set}`] ? '#f97316' : 'transparent',
-                    color: completedSets[`${name}-${set}`] ? '#000' : '#27272a',
-                    fontWeight: '900',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {completedSets[`${name}-${set}`] ? <CheckCircle size={18} /> : set}
-                </button>
-              ))}
-              <button style={{ flex: 1, borderRadius: '12px', border: '2px dashed #18181b', background: 'transparent', color: '#18181b' }}>
-                <Plus size={18}/>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              {[1, 2, 3].map(set => {
+                const isDone = completedSets[`${name}-${set}`];
+                return (
+                  <button 
+                    key={set}
+                    onClick={() => {
+                      const key = `${name}-${set}`;
+                      setCompletedSets({...completedSets, [key]: !isDone});
+                      if(!isDone) setTimeLeft(60);
+                    }}
+                    style={{
+                      flex: 1,
+                      height: '60px',
+                      borderRadius: '16px',
+                      border: isDone ? `2px solid ${THEME.orange}` : `2px solid ${THEME.border}`,
+                      background: isDone ? THEME.orange : 'transparent',
+                      color: isDone ? THEME.black : THEME.border,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.1s ease'
+                    }}
+                  >
+                    {isDone ? <CheckCircle size={24} weight="bold" /> : <span style={{fontSize: '18px', fontWeight: '900'}}>{set}</span>}
+                  </button>
+                );
+              })}
+              <button style={{ flex: 1, borderRadius: '16px', border: `2px dashed ${THEME.border}`, background: 'transparent', color: THEME.border, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Plus size={20}/>
               </button>
             </div>
           </div>
         ))}
 
-        <button style={{ marginTop: '20px', width: '100%', padding: '20px', borderRadius: '20px', border: 'none', backgroundColor: '#fff', color: '#000', fontWeight: '900', fontSize: '16px', textTransform: 'uppercase', fontStyle: 'italic' }}>
-          End Session & Log
+        <button style={{ 
+          marginTop: '20px', 
+          width: '100%', 
+          padding: '24px', 
+          borderRadius: '24px', 
+          border: 'none', 
+          backgroundColor: THEME.textMain, 
+          color: THEME.black, 
+          fontWeight: '900', 
+          fontSize: '18px', 
+          textTransform: 'uppercase', 
+          fontStyle: 'italic',
+          letterSpacing: '-1px',
+          boxShadow: '0 10px 20px rgba(0,0,0,0.3)'
+        }}>
+          End Protocol & Save
         </button>
       </div>
 
-      {/* FLOATING TIMER */}
+      {/* FLOATING TIMER OVERLAY */}
       {timeLeft > 0 && (
-        <div style={{ position: 'fixed', bottom: '30px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#fff', color: '#000', padding: '15px 40px', borderRadius: '40px', display: 'flex', alignItems: 'center', gap: '15px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', border: '4px solid #f97316' }}>
-          <Clock size={24} />
-          <span style={{ fontSize: '32px', fontWeight: '900', fontStyle: 'italic', fontFamily: 'monospace' }}>{timeLeft}</span>
-          <RotateCcw size={18} onClick={() => setTimeLeft(0)} />
+        <div style={{ 
+          position: 'fixed', 
+          bottom: '40px', 
+          left: '50%', 
+          transform: 'translateX(-50%)', 
+          backgroundColor: THEME.textMain, 
+          color: THEME.black, 
+          padding: '12px 30px', 
+          borderRadius: '50px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '20px', 
+          boxShadow: '0 15px 40px rgba(255,107,0,0.3)', 
+          border: `4px solid ${THEME.orange}`,
+          zIndex: 1000
+        }}>
+          <Clock size={28} />
+          <span style={{ fontSize: '42px', fontWeight: '900', fontStyle: 'italic', fontFamily: 'monospace' }}>{timeLeft}</span>
+          <button onClick={() => setTimeLeft(0)} style={{ border: 'none', background: '#eee', borderRadius: '50%', padding: '5px', cursor: 'pointer' }}>
+            <RotateCcw size={18} />
+          </button>
         </div>
       )}
     </div>
