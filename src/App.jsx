@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, Clock, RotateCcw, Dumbbell, BarChart3, PlusCircle, Trash2, Box, ChevronRight } from 'lucide-react';
+import { CheckCircle, Clock, RotateCcw, Dumbbell, BarChart3, PlusCircle, Trash2, ChevronRight } from 'lucide-react';
 
 const TitanTracker = () => {
   const [view, setView] = useState('train');
@@ -8,15 +8,13 @@ const TitanTracker = () => {
   const [completedSets, setCompletedSets] = useState({});
   const [exerciseData, setExerciseData] = useState({});
   const [customExercises, setCustomExercises] = useState(() => 
-    JSON.parse(localStorage.getItem('titan_custom_v11') || '[]')
+    JSON.parse(localStorage.getItem('titan_custom_v12') || '[]')
   );
 
-  // --- PRESET MACHINE LIBRARY ---
   const MACHINE_LIBRARY = {
-    LEGS: ["Leg Extension", "Leg Press (Alt)", "Calf Raise", "Glute Bridge"],
-    PUSH: ["Incline Chest Press", "Shoulder Press (Machine)", "Tricep Pushdown", "Lateral Raise"],
-    PULL: ["Face Pulls", "Bicep Curls (DB)", "Hammer Curls", "Rear Delt Fly"],
-    CORE: ["Hanging Leg Raise", "Russian Twist", "Ab Crunch Machine"]
+    LEGS: ["Leg Extension", "Calf Raise", "Glute Bridge"],
+    PUSH: ["Incline Chest Press", "Shoulder Press", "Tricep Pushdown"],
+    PULL: ["Face Pulls", "Bicep Curls", "Hammer Curls", "Rear Delt Fly"]
   };
 
   const DEFAULT_PLAN = [
@@ -33,8 +31,8 @@ const TitanTracker = () => {
   const FULL_PLAN = [...DEFAULT_PLAN, ...customExercises];
 
   useEffect(() => {
-    const savedSets = localStorage.getItem('titan_completed_v11');
-    const savedData = localStorage.getItem('titan_data_v11');
+    const savedSets = localStorage.getItem('titan_completed_v12');
+    const savedData = localStorage.getItem('titan_data_v12');
     if (savedSets) setCompletedSets(JSON.parse(savedSets));
     if (savedData) setExerciseData(JSON.parse(savedData));
     setMounted(true);
@@ -42,66 +40,54 @@ const TitanTracker = () => {
 
   useEffect(() => {
     if (mounted) {
-      localStorage.setItem('titan_completed_v11', JSON.stringify(completedSets));
-      localStorage.setItem('titan_data_v11', JSON.stringify(exerciseData));
-      localStorage.setItem('titan_custom_v11', JSON.stringify(customExercises));
+      localStorage.setItem('titan_completed_v12', JSON.stringify(completedSets));
+      localStorage.setItem('titan_data_v12', JSON.stringify(exerciseData));
+      localStorage.setItem('titan_custom_v12', JSON.stringify(customExercises));
     }
   }, [completedSets, exerciseData, customExercises, mounted]);
 
-  const addMachine = (name) => {
-    const newEx = {
-      id: `EXT-${Date.now()}`,
-      name: name,
-      sets: 3,
-      goal: "10-12",
-      rest: 60,
-      isCustom: true
-    };
-    setCustomExercises([...customExercises, newEx]);
-    setView('train');
-  };
-
-  const THEME = { black: '#000000', card: '#0c0c0c', border: '#1a1a1a', orange: '#FF5C00', textDim: '#555555' };
+  const THEME = { black: '#000000', card: '#111111', border: '#222222', orange: '#FF5C00', textDim: '#888888', white: '#FFFFFF' };
 
   if (!mounted) return null;
 
   return (
-    <div style={{ backgroundColor: THEME.black, minHeight: '100vh', color: '#fff', fontFamily: 'sans-serif', padding: '20px', maxWidth: '500px', margin: '0 auto', paddingBottom: '120px' }}>
+    <div style={{ backgroundColor: THEME.black, minHeight: '100vh', color: THEME.white, fontFamily: 'system-ui, -apple-system, sans-serif', padding: '15px', maxWidth: '500px', margin: '0 auto', paddingBottom: '140px' }}>
       
-      {/* HEADER NAV */}
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: '900', fontStyle: 'italic', color: THEME.orange, margin: 0 }}>TITAN</h1>
-        <div style={{ display: 'flex', gap: '8px', background: THEME.card, padding: '5px', borderRadius: '12px', border: `1px solid ${THEME.border}` }}>
-          <button onClick={() => setView('train')} style={{ background: view === 'train' ? THEME.orange : 'transparent', border: 'none', padding: '10px', borderRadius: '8px' }}><Dumbbell size={18} color={view === 'train' ? '#000' : '#444'} /></button>
-          <button onClick={() => setView('library')} style={{ background: view === 'library' ? THEME.orange : 'transparent', border: 'none', padding: '10px', borderRadius: '8px' }}><PlusCircle size={18} color={view === 'library' ? '#000' : '#444'} /></button>
-          <button onClick={() => setView('metrics')} style={{ background: view === 'metrics' ? THEME.orange : 'transparent', border: 'none', padding: '10px', borderRadius: '8px' }}><BarChart3 size={18} color={view === 'metrics' ? '#000' : '#444'} /></button>
+      {/* HEADER: BIGGER ICONS */}
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', padding: '10px 0' }}>
+        <h1 style={{ fontSize: '32px', fontWeight: '900', fontStyle: 'italic', color: THEME.orange, margin: 0, letterSpacing: '-1px' }}>TITAN</h1>
+        <div style={{ display: 'flex', gap: '12px', background: '#111', padding: '8px', borderRadius: '16px', border: `1px solid ${THEME.border}` }}>
+          <button onClick={() => setView('train')} style={{ background: view === 'train' ? THEME.orange : 'transparent', border: 'none', padding: '12px', borderRadius: '12px' }}><Dumbbell size={24} color={view === 'train' ? '#000' : '#666'} /></button>
+          <button onClick={() => setView('library')} style={{ background: view === 'library' ? THEME.orange : 'transparent', border: 'none', padding: '12px', borderRadius: '12px' }}><PlusCircle size={24} color={view === 'library' ? '#000' : '#666'} /></button>
+          <button onClick={() => setView('metrics')} style={{ background: view === 'metrics' ? THEME.orange : 'transparent', border: 'none', padding: '12px', borderRadius: '12px' }}><BarChart3 size={24} color={view === 'metrics' ? '#000' : '#666'} /></button>
         </div>
       </header>
 
-      {/* VIEW: TRAIN */}
+      {/* VIEW: TRAIN (BIGGER SETS) */}
       {view === 'train' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {FULL_PLAN.map((ex) => {
             const extraCount = exerciseData[`${ex.id}-extra`] || 0;
             const totalSets = ex.sets + extraCount;
             return (
-              <div key={ex.id} style={{ background: THEME.card, borderRadius: '20px', padding: '18px', border: `1px solid ${THEME.border}`, borderLeft: ex.isCustom ? `4px solid ${THEME.textDim}` : `4px solid ${THEME.orange}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <h3 style={{ fontSize: '15px', fontWeight: '900', textTransform: 'uppercase' }}>{ex.name}</h3>
-                  {ex.isCustom && <Trash2 size={16} color="#ff4444" onClick={() => setCustomExercises(customExercises.filter(c => c.id !== ex.id))} />}
+              <div key={ex.id} style={{ background: THEME.card, borderRadius: '24px', padding: '22px', border: `1px solid ${THEME.border}`, borderLeft: ex.isCustom ? '6px solid #444' : `6px solid ${THEME.orange}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: '800', margin: '0', textTransform: 'uppercase', lineHeight: '1.2', maxWidth: '70%' }}>{ex.name}</h3>
+                  <span style={{ fontSize: '14px', fontWeight: '900', color: THEME.orange, background: '#1a100a', padding: '4px 8px', borderRadius: '6px' }}>{ex.goal}</span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '10px' }}>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
                   {[...Array(totalSets)].map((_, i) => {
                     const key = `${ex.id}-${i}`;
                     const isDone = completedSets[key];
                     return (
-                      <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <button 
                           onClick={() => { setCompletedSets(prev => ({ ...prev, [key]: !isDone })); if(!isDone) setTimeLeft(ex.rest); }}
-                          style={{ height: '42px', borderRadius: '8px', border: isDone ? `2px solid ${THEME.orange}` : `2px solid ${THEME.border}`, background: isDone ? THEME.orange : 'transparent', color: isDone ? '#000' : THEME.textDim, fontWeight: '900' }}
-                        >{isDone ? <CheckCircle size={16} /> : i + 1}</button>
+                          style={{ height: '65px', borderRadius: '16px', border: 'none', background: isDone ? THEME.orange : '#222', color: isDone ? '#000' : THEME.white, fontWeight: '900', fontSize: '24px', transition: '0.1s active' }}
+                        >{isDone ? <CheckCircle size={32} strokeWidth={3} /> : i + 1}</button>
                         <input type="text" inputMode="decimal" placeholder="KG" value={exerciseData[key] || ''} onChange={(e) => setExerciseData(prev => ({ ...prev, [key]: e.target.value }))}
-                          style={{ width: '100%', background: THEME.black, border: `1px solid ${THEME.border}`, color: '#fff', fontSize: '11px', textAlign: 'center', padding: '6px 0', borderRadius: '6px' }} />
+                          style={{ width: '100%', background: '#000', border: `2px solid ${THEME.border}`, color: THEME.white, fontSize: '16px', fontWeight: 'bold', textAlign: 'center', padding: '12px 0', borderRadius: '12px', outline: 'none' }} />
                       </div>
                     );
                   })}
@@ -112,43 +98,33 @@ const TitanTracker = () => {
         </div>
       )}
 
-      {/* VIEW: LIBRARY (MACHINE SELECTION) */}
+      {/* VIEW: LIBRARY (BIG LIST) */}
       {view === 'library' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ background: THEME.card, padding: '20px', borderRadius: '20px', border: `1px solid ${THEME.border}` }}>
-             <h2 style={{ fontSize: '14px', fontWeight: '900', color: THEME.orange, marginBottom: '15px', textTransform: 'uppercase' }}>Select Machine</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
              {Object.entries(MACHINE_LIBRARY).map(([category, machines]) => (
-               <div key={category} style={{ marginBottom: '20px' }}>
-                 <div style={{ fontSize: '10px', color: THEME.textDim, fontWeight: 'bold', marginBottom: '10px' }}>{category}</div>
-                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+               <div key={category}>
+                 <div style={{ fontSize: '12px', color: THEME.orange, fontWeight: '900', marginBottom: '12px', letterSpacing: '1px' }}>{category}</div>
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                    {machines.map(m => (
-                     <button key={m} onClick={() => addMachine(m)} style={{ width: '100%', padding: '15px', background: THEME.black, border: `1px solid ${THEME.border}`, borderRadius: '12px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
-                        {m} <ChevronRight size={14} color={THEME.orange} />
+                     <button key={m} onClick={() => { 
+                       const newEx = { id: `EXT-${Date.now()}`, name: m, sets: 3, goal: "10-12", rest: 60, isCustom: true };
+                       setCustomExercises([...customExercises, newEx]);
+                       setView('train');
+                     }} style={{ width: '100%', padding: '22px', background: THEME.card, border: `1px solid ${THEME.border}`, borderRadius: '20px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '18px', fontWeight: '700' }}>
+                        {m} <ChevronRight size={20} color={THEME.orange} />
                      </button>
                    ))}
                  </div>
                </div>
              ))}
-          </div>
         </div>
       )}
 
-      {/* VIEW: METRICS (Simplified) */}
-      {view === 'metrics' && (
-        <div style={{ textAlign: 'center', paddingTop: '40px' }}>
-          <Box size={40} color={THEME.orange} style={{ marginBottom: '15px' }} />
-          <h2 style={{ fontSize: '12px', color: THEME.textDim, fontWeight: 'bold' }}>SESSION COMPLETE?</h2>
-          <button onClick={() => { localStorage.clear(); window.location.reload(); }}
-            style={{ marginTop: '20px', width: '100%', padding: '20px', borderRadius: '20px', background: '#FFF', color: '#000', fontWeight: '900', textTransform: 'uppercase' }}>
-            Finalize Data
-          </button>
-        </div>
-      )}
-
-      {/* TIMER */}
+      {/* TIMER HUD (LARGER) */}
       {timeLeft > 0 && view === 'train' && (
-        <div style={{ position: 'fixed', bottom: '40px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#FFF', color: '#000', padding: '10px 25px', borderRadius: '50px', display: 'flex', alignItems: 'center', gap: '10px', border: `4px solid ${THEME.orange}`, zIndex: 1000 }}>
-          <Clock size={20} /> <span style={{ fontSize: '30px', fontWeight: '900', fontFamily: 'monospace' }}>{timeLeft}s</span>
+        <div style={{ position: 'fixed', bottom: '40px', left: '50%', transform: 'translateX(-50%)', backgroundColor: THEME.white, color: '#000', padding: '15px 40px', borderRadius: '60px', display: 'flex', alignItems: 'center', gap: '15px', border: `5px solid ${THEME.orange}`, zIndex: 2000, boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
+          <Clock size={28} /> <span style={{ fontSize: '42px', fontWeight: '900', fontFamily: 'monospace' }}>{timeLeft}s</span>
+          <RotateCcw size={24} onClick={() => setTimeLeft(0)} />
         </div>
       )}
     </div>
