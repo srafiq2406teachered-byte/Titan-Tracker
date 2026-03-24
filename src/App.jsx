@@ -1,4 +1,4 @@
-=import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle, Clock, RotateCcw, Dumbbell, BarChart3, PlusCircle, Plus, X, ChevronRight, Activity, Trash2, StopCircle, Timer } from 'lucide-react';
 
 const TitanTracker = () => {
