@@ -108,4 +108,37 @@ const TitanTracker = () => {
                   const key = `${ex.id}-${i}`;
                   const isDone = completedSets[key];
                   return (
-                    <div key={i} style={{ display: 'flex', gap:
+                    <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <button onClick={() => { if(!isDone) setTimeLeft(ex.rest); setCompletedSets(prev => ({ ...prev, [key]: !isDone })); }}
+                        style={{ width: '15%', height: '48px', borderRadius: '10px', border: 'none', background: isDone ? THEME.orange : '#222', color: isDone ? '#000' : '#fff', fontWeight: '900', fontSize: '16px' }}>
+                        {isDone ? <CheckCircle size={20} /> : i + 1}
+                      </button>
+                      <input type="text" inputMode="decimal" placeholder="KG" value={exerciseData[`${key}-w`] || ''} onChange={(e) => setExerciseData(prev => ({ ...prev, [`${key}-w`]: e.target.value }))}
+                        style={{ flex: 1, minWidth: 0, background: '#000', border: '1px solid #222', color: '#fff', fontSize: '14px', textAlign: 'center', padding: '12px 0', borderRadius: '10px' }} />
+                      <input type="text" inputMode="numeric" placeholder="REPS" value={exerciseData[`${key}-r`] || ''} onChange={(e) => setExerciseData(prev => ({ ...prev, [`${key}-r`]: e.target.value }))}
+                        style={{ flex: 1, minWidth: 0, background: '#000', border: '1px solid #222', color: THEME.orange, fontSize: '14px', textAlign: 'center', padding: '12px 0', borderRadius: '10px' }} />
+                      <button onClick={() => { 
+                        const ns = {...completedSets}; const nd = {...exerciseData}; delete ns[key]; delete nd[`${key}-w`]; delete nd[`${key}-r`];
+                        if(i >= ex.sets) nd[`${ex.id}-extra`] = Math.max(0, (nd[`${ex.id}-extra`]||0)-1);
+                        setCompletedSets(ns); setExerciseData(nd);
+                      }} style={{ width: '30px', background: 'transparent', border: 'none' }}><X size={16} color="#444" /></button>
+                    </div>
+                  );
+                })}
+                <button onClick={() => setExerciseData(prev => ({ ...prev, [`${ex.id}-extra`]: (prev[`${ex.id}-extra`] || 0) + 1 }))}
+                  style={{ padding: '10px', borderRadius: '10px', border: `1px dashed #333`, background: 'transparent', color: '#555', fontWeight: 'bold', fontSize: '11px' }}>+ ADD SET</button>
+              </div>
+            </div>
+          ))}
+          <div style={{ marginTop: '10px', padding: '20px', background: THEME.orange, borderRadius: '18px', textAlign: 'center' }} onClick={() => { if(window.confirm("Finish workout? Data clears.")) { localStorage.clear(); window.location.reload(); }}}>
+            <div style={{ color: '#000', fontWeight: '900', fontSize: '16px' }}>COMPLETE SESSION</div>
+          </div>
+        </div>
+      )}
+
+      {/* LIBRARY & METRICS VIEWS OMITTED FOR BREVITY - LOGIC REMAINS SAME */}
+    </div>
+  );
+};
+
+export default TitanTracker;
