@@ -1,58 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, CheckCircle, Clock, Flame, Scale, RotateCcw, Dumbbell, History, PlusCircle, Trash2 } from 'lucide-react';
+import { CheckCircle, Clock, RotateCcw, Dumbbell, History, Plus } from 'lucide-react';
 
 const TitanTracker = () => {
   const [activeDay, setActiveDay] = useState(new Date().getDay());
   const [view, setView] = useState('train'); 
   const [timeLeft, setTimeLeft] = useState(0);
   const [completedSets, setCompletedSets] = useState({});
-  const [sessionWeights, setSessionWeights] = useState({});
-  const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('titan-v3-history') || '[]'));
 
   const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   
-  // FULL 7-DAY SCIENTIFIC SPLIT
-  const DEFAULT_PLANS = {
-    1: { name: "Push (Chest/Shoulders/Triceps)", exercises: [
-        { id: "p1", name: "Chest Press Machine", sets: 3, reps: "10-12", weight: 45 },
-        { id: "p2", name: "Shoulder Press Machine", sets: 3, reps: "12", weight: 20 },
-        { id: "p3", name: "Pec Deck Fly", sets: 3, reps: "15", weight: 35 },
-        { id: "p4", name: "Tricep Cable Pushdown", sets: 3, reps: "15", weight: 15 }
-    ]},
-    2: { name: "Pull (Back/Biceps)", exercises: [
-        { id: "l1", name: "Lat Pulldown", sets: 3, reps: "10-12", weight: 40 },
-        { id: "l2", name: "Seated Cable Row", sets: 3, reps: "12", weight: 35 },
-        { id: "l3", name: "Face Pulls", sets: 3, reps: "15", weight: 12 },
-        { id: "l4", name: "Machine Preacher Curl", sets: 3, reps: "12", weight: 15 }
-    ]},
-    3: { name: "Legs (Quads/Hams)", exercises: [
-        { id: "lg1", name: "Leg Press", sets: 4, reps: "10-12", weight: 80 },
-        { id: "lg2", name: "Leg Extension", sets: 3, reps: "15", weight: 30 },
-        { id: "lg3", name: "Seated Leg Curl", sets: 3, reps: "15", weight: 25 },
-        { id: "lg4", name: "Calf Press", sets: 4, reps: "20", weight: 50 }
-    ]},
-    4: { name: "Full Body Burn (Circuit)", exercises: [
-        { id: "fb1", name: "Goblet Squat", sets: 3, reps: "15", weight: 12 },
-        { id: "fb2", name: "Incline DB Press", sets: 3, reps: "12", weight: 14 },
-        { id: "fb3", name: "Lat Pulldown (Wide)", sets: 3, reps: "12", weight: 35 },
-        { id: "fb4", name: "Kettlebell Swings", sets: 3, reps: "20", weight: 16 }
-    ]},
-    5: { name: "Upper Focus (Detail)", exercises: [
-        { id: "up1", name: "Incline Machine Press", sets: 3, reps: "12", weight: 30 },
-        { id: "up2", name: "Lat Pulldown (Close Grip)", sets: 3, reps: "12", weight: 40 },
-        { id: "up3", name: "Lateral Raise Machine", sets: 3, reps: "15", weight: 10 },
-        { id: "up4", name: "Rope Hammer Curls", sets: 3, reps: "12", weight: 15 }
-    ]},
-    6: { name: "Metabolic / Cardio", exercises: [
-        { id: "c1", name: "Incline Walk", sets: 1, reps: "20 min", weight: 5 },
-        { id: "c2", name: "Stairmaster", sets: 1, reps: "10 min", weight: 7 },
-        { id: "c3", name: "Captain's Chair Leg Raise", sets: 3, reps: "15", weight: 0 },
-        { id: "c4", name: "Plank", sets: 3, reps: "60s", weight: 0 }
-    ]},
-    0: { name: "Active Recovery", exercises: [
-        { id: "r1", name: "Light Walking", sets: 1, reps: "30 min", weight: 0 },
-        { id: "r2", name: "Static Stretching", sets: 1, reps: "10 min", weight: 0 }
-    ]}
+  const WORKOUTS = {
+    1: { name: "Push Protocol", color: "#f97316", ex: ["Chest Press", "Shoulder Press", "Triceps"] },
+    2: { name: "Pull Protocol", color: "#f97316", ex: ["Lat Pulldown", "Cable Row", "Bicep Curls"] },
+    3: { name: "Leg Protocol", color: "#f97316", ex: ["Leg Press", "Leg Curl", "Calf Raises"] },
+    4: { name: "Full Body Burn", color: "#f97316", ex: ["Squats", "Pushups", "Rows"] },
+    5: { name: "Upper Detail", color: "#f97316", ex: ["Lateral Raises", "Flyes", "Hammer Curls"] },
+    6: { name: "Metabolic/Cardio", color: "#f97316", ex: ["Stairmaster", "Incline Walk", "Plank"] },
+    0: { name: "Recovery", color: "#71717a", ex: ["Light Walk", "Stretch"] }
   };
 
   useEffect(() => {
@@ -62,127 +26,102 @@ const TitanTracker = () => {
     }
   }, [timeLeft]);
 
-  const toggleSet = (exId, setIdx) => {
-    const key = `${exId}-${setIdx}`;
-    setCompletedSets(prev => ({ ...prev, [key]: !prev[key] }));
-    if (!completedSets[key]) setTimeLeft(60); 
-  };
-
-  const handleWeightChange = (exId, val) => {
-    setSessionWeights(prev => ({ ...prev, [exId]: val }));
-  };
-
-  const saveSession = () => {
-    const entry = {
-      id: Date.now(),
-      date: new Date().toLocaleDateString(),
-      day: DAYS[activeDay],
-      workoutName: DEFAULT_PLANS[activeDay].name,
-    };
-    const newHistory = [entry, ...history].slice(0, 20);
-    setHistory(newHistory);
-    localStorage.setItem('titan-v3-history', JSON.stringify(newHistory));
-    setCompletedSets({});
-    alert("Session Logged to History!");
-  };
-
-  const activeWorkout = DEFAULT_PLANS[activeDay];
+  const activeWorkout = WORKOUTS[activeDay] || WORKOUTS[0];
 
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-black text-white p-4 font-sans pb-32">
+    <div style={{ backgroundColor: '#000', minHeight: '100vh', color: '#fff', fontFamily: 'sans-serif', padding: '20px' }}>
       
       {/* HEADER */}
-      <div className="flex justify-between items-start mb-6 pt-4">
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <div>
-          <h1 className="text-5xl font-black italic tracking-tighter text-orange-600 leading-none">TITAN</h1>
-          <p className="text-zinc-600 text-[10px] font-bold uppercase tracking-[0.3em] mt-1">Status: Active Training</p>
+          <h1 style={{ fontSize: '42px', fontWeight: '900', fontStyle: 'italic', margin: 0, letterSpacing: '-2px', color: '#f97316' }}>TITAN</h1>
+          <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#52525b', textTransform: 'uppercase', letterSpacing: '2px' }}>V3.0 // Active Performance</p>
         </div>
-        <div className="flex bg-zinc-900 p-1.5 rounded-2xl border border-zinc-800">
-          <button onClick={() => setView('train')} className={`p-3 rounded-xl transition-all ${view === 'train' ? 'bg-orange-600 text-black' : 'text-zinc-500'}`}><Dumbbell size={20}/></button>
-          <button onClick={() => setView('history')} className={`p-3 rounded-xl transition-all ${view === 'history' ? 'bg-orange-600 text-black' : 'text-zinc-500'}`}><History size={20}/></button>
+        <div style={{ display: 'flex', gap: '10px', background: '#18181b', padding: '8px', borderRadius: '16px' }}>
+          <Dumbbell color={view === 'train' ? '#f97316' : '#52525b'} onClick={() => setView('train')} />
+          <History color={view === 'history' ? '#f97316' : '#52525b'} onClick={() => setView('history')} />
         </div>
-      </div>
+      </header>
 
       {/* DAY PICKER */}
-      <div className="flex gap-2 overflow-x-auto pb-6 no-scrollbar">
+      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '30px', paddingBottom: '10px' }}>
         {DAYS.map((day, i) => (
           <button 
-            key={day} 
-            onClick={() => {setActiveDay(i); setCompletedSets({});}}
-            className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase whitespace-nowrap transition-all border-2 ${activeDay === i ? 'bg-orange-600 border-orange-600 text-black' : 'border-zinc-900 text-zinc-600'}`}
+            key={day}
+            onClick={() => setActiveDay(i)}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '12px',
+              border: 'none',
+              fontSize: '11px',
+              fontWeight: '900',
+              textTransform: 'uppercase',
+              backgroundColor: activeDay === i ? '#f97316' : '#18181b',
+              color: activeDay === i ? '#000' : '#71717a',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }}
           >
             {day.substring(0, 3)}
           </button>
         ))}
       </div>
 
-      {view === 'train' ? (
-        <div className="space-y-6">
-          <div className="border-l-4 border-orange-600 pl-4 mb-8">
-            <h2 className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Target Today</h2>
-            <p className="text-xl font-black italic uppercase tracking-tight">{activeWorkout.name}</p>
-          </div>
+      {/* WORKOUT CARDS */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ borderLeft: '4px solid #f97316', paddingLeft: '15px' }}>
+            <h2 style={{ fontSize: '10px', color: '#52525b', textTransform: 'uppercase', margin: 0 }}>Current Target</h2>
+            <p style={{ fontSize: '20px', fontWeight: '900', fontStyle: 'italic', margin: 0 }}>{activeWorkout.name}</p>
+        </div>
 
-          {activeWorkout.exercises.map((ex) => (
-            <div key={ex.id} className="bg-zinc-950 border border-zinc-900 rounded-[32px] p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="font-black text-sm uppercase italic tracking-wide w-2/3">{ex.name}</h3>
-                <div className="flex items-center gap-2 bg-black border border-zinc-800 px-3 py-2 rounded-xl">
-                    <input 
-                      type="number" 
-                      defaultValue={ex.weight}
-                      onChange={(e) => handleWeightChange(ex.id, e.target.value)}
-                      className="bg-transparent w-8 text-center text-orange-500 font-bold outline-none"
-                    />
-                    <span className="text-[9px] font-black text-zinc-600 uppercase">KG</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-4 gap-2">
-                {[...Array(ex.sets)].map((_, i) => (
-                  <button 
-                    key={i}
-                    onClick={() => toggleSet(ex.id, i)}
-                    className={`h-14 rounded-2xl border-2 font-black italic transition-all flex items-center justify-center ${completedSets[`${ex.id}-${i}`] ? 'bg-orange-600 border-orange-600 text-black' : 'border-zinc-900 text-zinc-800'}`}
-                  >
-                    {completedSets[`${ex.id}-${i}`] ? <CheckCircle size={20} /> : i + 1}
-                  </button>
-                ))}
-                <button className="h-14 rounded-2xl border-2 border-dashed border-zinc-900 text-zinc-800 flex items-center justify-center hover:text-orange-600 transition-colors">
-                    <Plus size={20} />
-                </button>
-              </div>
+        {activeWorkout.ex.map((name, idx) => (
+          <div key={idx} style={{ background: '#09090b', border: '1px solid #18181b', borderRadius: '24px', padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: '900', textTransform: 'uppercase', margin: 0 }}>{name}</h3>
+              <div style={{ color: '#f97316', fontSize: '12px', fontWeight: 'bold' }}>3 SETS</div>
             </div>
-          ))}
+            
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {[1, 2, 3].map(set => (
+                <button 
+                  key={set}
+                  onClick={() => {
+                    const key = `${name}-${set}`;
+                    setCompletedSets({...completedSets, [key]: !completedSets[key]});
+                    if(!completedSets[key]) setTimeLeft(60);
+                  }}
+                  style={{
+                    flex: 1,
+                    height: '50px',
+                    borderRadius: '12px',
+                    border: '2px solid #18181b',
+                    background: completedSets[`${name}-${set}`] ? '#f97316' : 'transparent',
+                    color: completedSets[`${name}-${set}`] ? '#000' : '#27272a',
+                    fontWeight: '900',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {completedSets[`${name}-${set}`] ? <CheckCircle size={18} /> : set}
+                </button>
+              ))}
+              <button style={{ flex: 1, borderRadius: '12px', border: '2px dashed #18181b', background: 'transparent', color: '#18181b' }}>
+                <Plus size={18}/>
+              </button>
+            </div>
+          </div>
+        ))}
 
-          <button onClick={saveSession} className="w-full bg-white text-black font-black py-6 rounded-[32px] uppercase italic tracking-tighter hover:bg-orange-600 transition-all mt-8">
-            End Protocol & Save
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {history.length === 0 ? (
-            <div className="text-center py-20 text-zinc-800 font-black uppercase italic">No Data Found</div>
-          ) : (
-            history.map(log => (
-              <div key={log.id} className="bg-zinc-950 border border-zinc-900 p-5 rounded-[24px] flex justify-between items-center">
-                <div>
-                  <p className="text-[10px] text-zinc-600 font-bold uppercase">{log.date}</p>
-                  <p className="font-black italic text-white uppercase">{log.workoutName}</p>
-                </div>
-                <Flame size={20} className="text-orange-600" />
-              </div>
-            ))
-          )}
-        </div>
-      )}
+        <button style={{ marginTop: '20px', width: '100%', padding: '20px', borderRadius: '20px', border: 'none', backgroundColor: '#fff', color: '#000', fontWeight: '900', fontSize: '16px', textTransform: 'uppercase', fontStyle: 'italic' }}>
+          End Session & Log
+        </button>
+      </div>
 
       {/* FLOATING TIMER */}
       {timeLeft > 0 && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-white text-black px-10 py-5 rounded-[24px] shadow-2xl flex items-center gap-6 z-50 border-4 border-orange-600 animate-pulse">
-          <Clock size={28} />
-          <span className="font-mono text-5xl font-black italic tracking-tighter">{timeLeft}</span>
-          <button onClick={() => setTimeLeft(0)} className="bg-zinc-200 p-2 rounded-full"><RotateCcw size={18}/></button>
+        <div style={{ position: 'fixed', bottom: '30px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#fff', color: '#000', padding: '15px 40px', borderRadius: '40px', display: 'flex', alignItems: 'center', gap: '15px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', border: '4px solid #f97316' }}>
+          <Clock size={24} />
+          <span style={{ fontSize: '32px', fontWeight: '900', fontStyle: 'italic', fontFamily: 'monospace' }}>{timeLeft}</span>
+          <RotateCcw size={18} onClick={() => setTimeLeft(0)} />
         </div>
       )}
     </div>
