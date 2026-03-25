@@ -120,4 +120,98 @@ const TitanTracker = () => {
         <h1 style={{ fontSize: '24px', fontWeight: '900', letterSpacing: '-1.5px' }}>TITAN<span style={{color: T.accent}}>+</span></h1>
         <div style={{ display: 'flex', background: T.surface, padding: '4px', borderRadius: '12px' }}>
           <button onClick={() => setView('menu')} style={{ border: 'none', padding: '10px', background: view === 'menu' ? T.card : 'transparent', color: view === 'menu' ? T.accent : T.subtext, borderRadius: '8px', cursor: 'pointer' }}><Play size={20}/></button>
-          <button onClick={() => setView('log')} style={{ border: 'none', padding: '1
+          <button onClick={() => setView('log')} style={{ border: 'none', padding: '10px', background: view === 'log' ? T.card : 'transparent', color: view === 'log' ? T.accent : T.subtext, borderRadius: '8px', cursor: 'pointer' }}><History size={20}/></button>
+        </div>
+      </div>
+
+      {/* VIEW: MENU */}
+      {view === 'menu' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {Object.values(WORKOUTS).map(w => (
+            <button key={w.id} onClick={() => startWorkout(w.id)} style={{ background: T.surface, border: `1px solid ${T.border}`, padding: '25px', borderRadius: '24px', textAlign: 'left', cursor: 'pointer', transition: 'transform 0.1s' }}>
+              <div style={{ color: w.color, fontWeight: '900', fontSize: '18px' }}>{w.name}</div>
+              <div style={{ color: T.subtext, fontSize: '11px', marginTop: '4px' }}>LOG SESSION</div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* VIEW: TRAIN */}
+      {view === 'train' && activeSession && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', paddingBottom: '140px' }}>
+          {activeSession.list.map(ex => (
+            <div key={ex.id} style={{ background: T.surface, padding: '15px', borderRadius: '20px', border: `1px solid ${T.border}` }}>
+              <div style={{ fontWeight: '900', fontSize: '16px', marginBottom: '12px', color: '#FFF' }}>{ex.name}</div>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                  <button onClick={() => setTimeLeft(activeSession.rest)} style={{ width: '45px', height: '45px', background: T.card, borderRadius: '10px', border: 'none', color: T.accent, fontWeight: '900' }}>{i + 1}</button>
+                  
+                  {/* KG STEPPER (1KG) */}
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#000', borderRadius: '10px', border: `1px solid ${T.border}` }}>
+                    <button onClick={() => updateVal(`${ex.id}-s${i}-w`, -1)} style={{ padding: '10px', background: 'none', border: 'none', color: T.subtext }}><Minus size={14}/></button>
+                    <div style={{ flex: 1, textAlign: 'center', fontWeight: '900', fontSize: '14px' }}>{sessionData[`${ex.id}-s${i}-w`] || 0}kg</div>
+                    <button onClick={() => updateVal(`${ex.id}-s${i}-w`, 1)} style={{ padding: '10px', background: 'none', border: 'none', color: T.subtext }}><Plus size={14}/></button>
+                  </div>
+
+                  {/* REPS STEPPER (1UNIT) */}
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#000', borderRadius: '10px', border: `1px solid ${T.border}` }}>
+                    <button onClick={() => updateVal(`${ex.id}-s${i}-r`, -1)} style={{ padding: '10px', background: 'none', border: 'none', color: T.subtext }}><Minus size={14}/></button>
+                    <div style={{ flex: 1, textAlign: 'center', fontWeight: '900', fontSize: '14px', color: T.accent }}>{sessionData[`${ex.id}-s${i}-r`] || 0}</div>
+                    <button onClick={() => updateVal(`${ex.id}-s${i}-r`, 1)} style={{ padding: '10px', background: 'none', border: 'none', color: T.subtext }}><Plus size={14}/></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+
+          {/* ADD EXTRAS */}
+          <div style={{ marginTop: '10px' }}>
+            <div style={{ fontSize: '10px', fontWeight: '900', color: T.subtext, marginBottom: '8px', paddingLeft: '5px' }}>EXPAND SESSION:</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              {EXTRA_POOL.filter(e => !activeSession.list.find(al => al.id === e.id)).map(ex => (
+                <button key={ex.id} onClick={() => addExtra(ex)} style={{ background: T.surface, border: `1px dashed ${T.border}`, padding: '12px', borderRadius: '12px', color: T.subtext, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '5px', justifyContent: 'center' }}>
+                  <Plus size={12}/> {ex.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button onClick={finishSession} style={{ position: 'fixed', bottom: '25px', left: '20px', right: '20px', background: T.accent, padding: '20px', borderRadius: '18px', fontWeight: '950', color: '#000', border: 'none', boxShadow: '0 8px 30px rgba(0,0,0,0.6)', maxWidth: '460px', margin: '0 auto' }}>FINISH & SAVE HISTORY</button>
+        </div>
+      )}
+
+      {/* VIEW: LOG */}
+      {view === 'log' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {history.map((h, i) => (
+            <div key={i} style={{ background: T.surface, padding: '15px', borderRadius: '15px', borderLeft: `4px solid ${h.color}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: '900', fontSize: '14px' }}>{h.date}</span>
+                <span style={{ color: h.color, fontWeight: '900', fontSize: '11px' }}>{h.name}</span>
+              </div>
+            </div>
+          ))}
+          {history.length === 0 && <div style={{ textAlign: 'center', color: T.subtext, marginTop: '80px' }}>No training logs yet.</div>}
+        </div>
+      )}
+
+      {/* REST OVERLAY */}
+      {timeLeft > 0 && (
+        <div onClick={() => setTimeLeft(0)} style={{ position: 'fixed', bottom: '20px', left: '20px', right: '20px', background: T.accent, color: '#000', padding: '20px', borderRadius: '25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 1000, maxWidth: '460px', margin: '0 auto' }}>
+          <span style={{ fontWeight: '950', fontSize: '32px' }}>{timeLeft}s</span>
+          <div style={{ fontWeight: '900', textAlign: 'right' }}>RESTING</div>
+        </div>
+      )}
+
+      {/* TIMER LOGIC */}
+      {useEffect(() => {
+        let t;
+        if (timeLeft > 0) t = setInterval(() => setTimeLeft(p => p - 1), 1000);
+        return () => clearInterval(t);
+      }, [timeLeft])}
+
+    </div>
+  )
+}
+
+export default TitanTracker;
