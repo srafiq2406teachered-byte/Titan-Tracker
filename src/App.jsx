@@ -149,4 +149,55 @@ const TitanTracker = () => {
                   value={sessionData[`${ex.id}-r`] || ''} 
                   onChange={(e) => setSessionData({...sessionData, [`${ex.id}-r`]: e.target.value})}
                   onBlur={() => setTimeLeft(activeSession.rest)}
-                  style={{ flex: 1,
+                  style={{ flex: 1, height: '60px', background: '#000', border: `2px solid ${UI.accent}`, borderRadius: '15px', color: UI.accent, textAlign: 'center', fontSize: '24px', fontWeight: '900' }} 
+                />
+              </div>
+            </div>
+          ))}
+          <button onClick={logWorkout} style={{ background: UI.accent, padding: '30px', borderRadius: '20px', fontWeight: '900', fontSize: '20px', border: 'none' }}>LOG SESSION</button>
+        </div>
+      )}
+
+      {/* VIEW: LOG (HISTORY) */}
+      {view === 'log' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          {history.length === 0 && <div style={{ color: '#555', textAlign: 'center', marginTop: '50px' }}>No logs yet.</div>}
+          {history.map((h, i) => (
+            <div key={i} style={{ background: UI.card, padding: '20px', borderRadius: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #222', paddingBottom: '10px', marginBottom: '10px' }}>
+                <span style={{ fontWeight: '900' }}>{h.date}</span>
+                <span style={{ color: UI.accent, fontSize: '12px' }}>{h.name}</span>
+              </div>
+              {h.details.map((d, j) => (
+                <div key={j} style={{ fontSize: '14px', color: '#AAA', marginBottom: '4px' }}>
+                  {d.name}: <span style={{ color: '#FFF' }}>{d.val}kg x {d.reps}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+          <button onClick={() => { if(window.confirm('Clear all?')) setHistory([]); }} style={{ color: '#F00', background: 'none', border: 'none', marginTop: '20px' }}>WIPE ALL DATA</button>
+        </div>
+      )}
+
+      {/* TIMER HUD */}
+      {timeLeft > 0 && (
+        <div onClick={() => setTimeLeft(0)} style={{ position: 'fixed', bottom: '20px', left: '20px', right: '20px', background: UI.accent, color: '#000', padding: '25px', borderRadius: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 1000 }}>
+          <span style={{ fontWeight: '900', fontSize: '32px' }}>REST: {timeLeft}s</span>
+          <Check size={32} />
+        </div>
+      )}
+
+      {/* TICKER FOR TIMER */}
+      {useEffect(() => {
+        let timer;
+        if (timeLeft > 0) {
+          timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+        }
+        return () => clearInterval(timer);
+      }, [timeLeft])}
+
+    </div>
+  );
+};
+
+export default TitanTracker;
