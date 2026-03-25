@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Dumbbell, TrendingUp, History, Clock, PlusCircle, 
-  Trash2, ChevronDown, ChevronUp, Zap, Activity, Box 
+  Trash2, ChevronDown, ChevronUp, Zap, Activity, Box, LayoutGrid
 } from 'lucide-react';
 
 const TitanTracker = () => {
@@ -17,12 +17,25 @@ const TitanTracker = () => {
     { id: "D2", name: "Walking Lunges", sets: 3, group: "LEGS", rest: 30 }
   ];
 
-  // --- PRESET LIBRARY ---
+  // --- PRESET LIBRARY (Categories for Extra Page) ---
   const LIBRARY = {
     LEGS: ["Hip Abductor", "Hip Adductor", "Leg Extension", "Calf Press"],
     PUSH: ["Tricep Pushdown", "Shoulder Press Machine", "Dips"],
     PULL: ["Bicep Curl Machine", "Face Pulls", "Hammer Curls"],
     CARDIO: ["Treadmill", "Stationary Bike", "Elliptical", "Stairmaster"]
+  };
+
+  // --- THEME DEFINITION ---
+  const THEME = {
+    bg: '#0A0A0B',
+    surface: '#161618',
+    surfaceLight: '#222225',
+    accent: '#FF4D00', // Electric Ember
+    accentDim: '#3D1B0B',
+    text: '#FFFFFF',
+    textDim: '#8E8E93',
+    border: 'rgba(255, 255, 255, 0.08)',
+    success: '#32D74B'
   };
 
   const [view, setView] = useState('train');
@@ -31,14 +44,14 @@ const TitanTracker = () => {
   const [exerciseData, setExerciseData] = useState({});
   const [history, setHistory] = useState([]);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [expandedLog, setExpandedLog] = useState(null);
   const [mounted, setMounted] = useState(false);
 
+  // --- PERSISTENCE ---
   useEffect(() => {
-    const sSets = localStorage.getItem('tt_v36_sets');
-    const sData = localStorage.getItem('tt_v36_data');
-    const sHist = localStorage.getItem('tt_v36_hist');
-    const sExts = localStorage.getItem('tt_v36_exts');
+    const sSets = localStorage.getItem('tt_v37_sets');
+    const sData = localStorage.getItem('tt_v37_data');
+    const sHist = localStorage.getItem('tt_v37_hist');
+    const sExts = localStorage.getItem('tt_v37_exts');
     if (sSets) setCompletedSets(JSON.parse(sSets));
     if (sData) setExerciseData(JSON.parse(sData));
     if (sHist) setHistory(JSON.parse(sHist));
@@ -48,10 +61,10 @@ const TitanTracker = () => {
 
   useEffect(() => {
     if (mounted) {
-      localStorage.setItem('tt_v36_sets', JSON.stringify(completedSets));
-      localStorage.setItem('tt_v36_data', JSON.stringify(exerciseData));
-      localStorage.setItem('tt_v36_hist', JSON.stringify(history));
-      localStorage.setItem('tt_v36_exts', JSON.stringify(activeExtras));
+      localStorage.setItem('tt_v37_sets', JSON.stringify(completedSets));
+      localStorage.setItem('tt_v37_data', JSON.stringify(exerciseData));
+      localStorage.setItem('tt_v37_hist', JSON.stringify(history));
+      localStorage.setItem('tt_v37_exts', JSON.stringify(activeExtras));
     }
   }, [completedSets, exerciseData, history, activeExtras, mounted]);
 
@@ -97,34 +110,39 @@ const TitanTracker = () => {
     setView('calendar');
   };
 
-  const THEME = { orange: '#FF5C00', bg: '#000', card: '#111', border: '#222' };
-
   if (!mounted) return null;
 
   return (
-    <div style={{ background: THEME.bg, minHeight: '100vh', color: '#fff', fontFamily: 'sans-serif', padding: '15px 15px 120px 15px' }}>
+    <div style={{ background: THEME.bg, minHeight: '100vh', color: THEME.text, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', padding: 'env(safe-area-inset-top) 16px 120px 16px' }}>
       
-      {/* NAVBAR */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
-        <h1 style={{ color: THEME.orange, fontWeight: '900', fontStyle: 'italic', margin: 0 }}>TITAN</h1>
-        <div style={{ display: 'flex', gap: '5px', background: '#111', padding: '5px', borderRadius: '15px' }}>
-          <button onClick={() => setView('train')} style={{ border: 'none', background: view === 'train' ? THEME.orange : 'transparent', padding: '10px', borderRadius: '10px' }}><Dumbbell size={20} color={view === 'train' ? '#000' : '#444'} /></button>
-          <button onClick={() => setView('library')} style={{ border: 'none', background: view === 'library' ? THEME.orange : 'transparent', padding: '10px', borderRadius: '10px' }}><PlusCircle size={20} color={view === 'library' ? '#000' : '#444'} /></button>
-          <button onClick={() => setView('metrics')} style={{ border: 'none', background: view === 'metrics' ? THEME.orange : 'transparent', padding: '10px', borderRadius: '10px' }}><TrendingUp size={20} color={view === 'metrics' ? '#000' : '#444'} /></button>
-          <button onClick={() => setView('calendar')} style={{ border: 'none', background: view === 'calendar' ? THEME.orange : 'transparent', padding: '10px', borderRadius: '10px' }}><History size={20} color={view === 'calendar' ? '#000' : '#444'} /></button>
+      {/* HEADER */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', paddingTop: '10px' }}>
+        <div>
+          <h1 style={{ color: THEME.accent, fontWeight: '900', fontStyle: 'italic', fontSize: '24px', margin: 0, letterSpacing: '-0.5px' }}>TITAN</h1>
+          <div style={{ fontSize: '10px', color: THEME.textDim, fontWeight: '700', letterSpacing: '1px' }}>DOHA ELITE V37</div>
+        </div>
+        <div style={{ display: 'flex', gap: '6px', background: THEME.surface, padding: '6px', borderRadius: '14px', border: `1px solid ${THEME.border}` }}>
+          {[
+            { id: 'train', icon: <Dumbbell size={20} /> },
+            { id: 'library', icon: <LayoutGrid size={20} /> },
+            { id: 'metrics', icon: <TrendingUp size={20} /> },
+            { id: 'calendar', icon: <History size={20} /> }
+          ].map(tab => (
+            <button key={tab.id} onClick={() => setView(tab.id)} style={{ border: 'none', background: view === tab.id ? THEME.accent : 'transparent', padding: '10px', borderRadius: '10px', color: view === tab.id ? '#000' : THEME.textDim, transition: 'all 0.2s ease' }}>{tab.icon}</button>
+          ))}
         </div>
       </div>
 
-      {/* VIEW: LIBRARY (Separate Page) */}
+      {/* VIEW: LIBRARY */}
       {view === 'library' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ animation: 'fadeIn 0.3s ease' }}>
           {Object.entries(LIBRARY).map(([group, items]) => (
-            <div key={group}>
-              <div style={{ fontSize: '11px', color: '#555', fontWeight: '900', marginBottom: '10px', letterSpacing: '1px' }}>{group}</div>
+            <div key={group} style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '11px', color: THEME.textDim, fontWeight: '800', marginBottom: '12px', letterSpacing: '1px' }}>{group}</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 {items.map(item => (
-                  <button key={item} onClick={() => addFromLibrary(item, group)} style={{ background: THEME.card, border: `1px solid ${THEME.border}`, color: '#fff', padding: '15px', borderRadius: '15px', fontSize: '12px', fontWeight: 'bold', textAlign: 'left' }}>
-                    + {item}
+                  <button key={item} onClick={() => addFromLibrary(item, group)} style={{ background: THEME.surface, border: `1px solid ${THEME.border}`, color: THEME.text, padding: '18px 14px', borderRadius: '16px', fontSize: '13px', fontWeight: '700', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <PlusCircle size={14} color={THEME.accent} /> {item}
                   </button>
                 ))}
               </div>
@@ -135,43 +153,65 @@ const TitanTracker = () => {
 
       {/* VIEW: TRAIN */}
       {view === 'train' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {[...PROTOCOL, ...activeExtras].map(ex => (
-            <div key={ex.id} style={{ background: THEME.card, padding: '20px', borderRadius: '22px', border: `1px solid ${THEME.border}`, borderLeft: ex.id.startsWith('extra') ? '4px solid #444' : `4px solid ${THEME.orange}` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                <span style={{ fontWeight: '900', fontSize: '13px', color: ex.id.startsWith('extra') ? '#666' : THEME.orange }}>{ex.name.toUpperCase()}</span>
-                {ex.id.startsWith('extra') && <Trash2 size={16} color="#444" onClick={() => setActiveExtras(activeExtras.filter(ae => ae.id !== ex.id))} />}
+            <div key={ex.id} style={{ background: THEME.surface, padding: '20px', borderRadius: '24px', border: `1px solid ${THEME.border}`, position: 'relative', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                <span style={{ fontWeight: '800', fontSize: '14px', color: ex.id.startsWith('extra') ? THEME.textDim : THEME.accent }}>{ex.name.toUpperCase()}</span>
+                {ex.id.startsWith('extra') && <Trash2 size={16} color={THEME.textDim} onClick={() => setActiveExtras(activeExtras.filter(ae => ae.id !== ex.id))} />}
               </div>
+              
               {[...Array(ex.sets)].map((_, i) => (
-                <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '12px' }}>
                   <button onClick={() => { setCompletedSets(prev => ({ ...prev, [`${ex.id}-${i}`]: !prev[`${ex.id}-${i}`] })); if (!completedSets[`${ex.id}-${i}`]) setTimeLeft(ex.rest); }} 
-                    style={{ width: '50px', height: '50px', borderRadius: '12px', border: 'none', background: completedSets[`${ex.id}-${i}`] ? THEME.orange : '#1a1a1a', color: '#000', fontWeight: '900' }}>{i+1}</button>
-                  <input type="number" placeholder={ex.isCardio ? "MINS" : "KG"} value={exerciseData[`${ex.id}-${i}-w`] || ''} onChange={e => setExerciseData({...exerciseData, [`${ex.id}-${i}-w`]: e.target.value})} style={{ flex: 1, background: '#000', border: '1px solid #222', borderRadius: '12px', color: '#fff', textAlign: 'center', fontWeight: 'bold' }} />
-                  <input type="number" placeholder={ex.isCardio ? "KM" : "REPS"} value={exerciseData[`${ex.id}-${i}-r`] || ''} onChange={e => setExerciseData({...exerciseData, [`${ex.id}-${i}-r`]: e.target.value})} style={{ flex: 1, background: '#000', border: '1px solid #222', borderRadius: '12px', color: THEME.orange, textAlign: 'center', fontWeight: 'bold' }} />
+                    style={{ width: '54px', height: '54px', borderRadius: '16px', border: 'none', background: completedSets[`${ex.id}-${i}`] ? THEME.accent : THEME.surfaceLight, color: completedSets[`${ex.id}-${i}`] ? '#000' : THEME.textDim, fontWeight: '900', fontSize: '18px', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)' }}>{i+1}</button>
+                  <input type="number" placeholder={ex.isCardio ? "MINS" : "KG"} value={exerciseData[`${ex.id}-${i}-w`] || ''} onChange={e => setExerciseData({...exerciseData, [`${ex.id}-${i}-w`]: e.target.value})} style={{ flex: 1.2, background: THEME.bg, border: `1px solid ${THEME.border}`, borderRadius: '16px', color: THEME.text, textAlign: 'center', fontWeight: '800', fontSize: '16px' }} />
+                  <input type="number" placeholder={ex.isCardio ? "KM" : "REPS"} value={exerciseData[`${ex.id}-${i}-r`] || ''} onChange={e => setExerciseData({...exerciseData, [`${ex.id}-${i}-r`]: e.target.value})} style={{ flex: 1, background: THEME.bg, border: `1px solid ${THEME.border}`, borderRadius: '16px', color: THEME.accent, textAlign: 'center', fontWeight: '800', fontSize: '16px' }} />
                 </div>
               ))}
             </div>
           ))}
-          <button onClick={handleFinish} style={{ background: THEME.orange, padding: '25px', borderRadius: '20px', border: 'none', fontWeight: '900', fontSize: '18px', color: '#000' }}>LOG SESSION</button>
+          <button onClick={handleFinish} style={{ background: THEME.accent, padding: '24px', borderRadius: '22px', border: 'none', fontWeight: '900', fontSize: '18px', color: '#000', marginTop: '10px', boxShadow: `0 8px 24px ${THEME.accentDim}` }}>LOG ELITE SESSION</button>
         </div>
       )}
 
-      {/* VIEW: METRICS & CALENDAR (Simplified for clarity) */}
-      {view === 'metrics' && <div style={{ background: THEME.card, padding: '30px', borderRadius: '25px', textAlign: 'center' }}><div style={{ fontSize: '12px', color: '#444' }}>SESSION VOLUME</div><div style={{ fontSize: '48px', fontWeight: '900', color: THEME.orange }}>{getStats().toLocaleString()}kg</div></div>}
+      {/* VIEW: METRICS */}
+      {view === 'metrics' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ background: THEME.surface, padding: '40px 20px', borderRadius: '30px', textAlign: 'center', border: `1px solid ${THEME.border}` }}>
+            <div style={{ fontSize: '12px', color: THEME.textDim, fontWeight: '800', letterSpacing: '1px', marginBottom: '10px' }}>SESSION VOLUME</div>
+            <div style={{ fontSize: '64px', fontWeight: '900', color: THEME.accent }}>{getStats().toLocaleString()}<span style={{ fontSize: '20px', marginLeft: '4px' }}>kg</span></div>
+          </div>
+        </div>
+      )}
 
+      {/* VIEW: CALENDAR */}
       {view === 'calendar' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {history.map(log => (
-            <div key={log.id} style={{ background: THEME.card, padding: '20px', borderRadius: '20px' }}>
-              <div style={{ fontWeight: '900' }}>{log.date} — {log.vol.toLocaleString()}kg</div>
-              <div style={{ fontSize: '11px', color: '#444', marginTop: '5px' }}>{log.details.map(d => d.name).join(', ')}</div>
+            <div key={log.id} style={{ background: THEME.surface, padding: '20px', borderRadius: '24px', border: `1px solid ${THEME.border}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: '900', fontSize: '18px' }}>{log.date}</div>
+                  <div style={{ fontSize: '12px', color: THEME.textDim, marginTop: '4px' }}>{log.details.length} Exercises Complete</div>
+                </div>
+                <div style={{ fontSize: '20px', fontWeight: '900', color: THEME.accent }}>{log.vol.toLocaleString()}kg</div>
+              </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* TIMER */}
-      {timeLeft > 0 && <div style={{ position: 'fixed', bottom: '30px', left: '20px', right: '20px', background: '#fff', color: '#000', padding: '20px', borderRadius: '35px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 1000, border: `4px solid ${THEME.orange}` }}><div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><Clock size={28} /> <span style={{ fontSize: '36px', fontWeight: '900' }}>{timeLeft}s</span></div><button onClick={() => setTimeLeft(0)} style={{ background: THEME.orange, border: 'none', padding: '12px 25px', borderRadius: '15px', fontWeight: '900' }}>SKIP</button></div>}
+      {/* FLOATING TIMER */}
+      {timeLeft > 0 && (
+        <div style={{ position: 'fixed', bottom: '30px', left: '20px', right: '20px', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)', color: '#000', padding: '18px 25px', borderRadius: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 2000, boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Activity size={24} className="animate-pulse" />
+            <span style={{ fontSize: '32px', fontWeight: '900', fontFamily: 'monospace' }}>{timeLeft}s</span>
+          </div>
+          <button onClick={() => setTimeLeft(0)} style={{ background: '#000', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '16px', fontWeight: '900', fontSize: '14px' }}>SKIP</button>
+        </div>
+      )}
     </div>
   );
 };
