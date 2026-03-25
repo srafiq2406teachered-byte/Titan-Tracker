@@ -131,4 +131,79 @@ const TitanTracker = () => {
       {view === 'menu' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           {Object.values(WORKOUTS).map(w => (
-            <button key={w.id} onClick
+            <button key={w.id} onClick={() => handleStart(w.id)} style={{ background: T.surface, border: `1px solid ${T.border}`, padding: '25px', borderRadius: '24px', textAlign: 'left', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', right: '-10px', bottom: '-10px', opacity: 0.1 }}><Dumbbell size={80} color={w.color}/></div>
+              <div style={{ color: w.color, fontWeight: '900', fontSize: '18px' }}>{w.name}</div>
+              <div style={{ color: T.subtext, fontSize: '11px', marginTop: '4px' }}>{w.rest}s REST • START SESSION</div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* VIEW: TRAIN */}
+      {view === 'train' && activeSession && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '160px' }}>
+          {activeSession.list.map(ex => (
+            <div key={ex.id} style={{ background: T.surface, padding: '20px', borderRadius: '24px', border: `1px solid ${T.border}` }}>
+              <div style={{ fontWeight: '900', fontSize: '17px', marginBottom: '15px', color: '#FFF' }}>{ex.name}</div>
+              {[...Array(setCounts[ex.id] || 3)].map((_, i) => (
+                <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                  <button onClick={() => setTimeLeft(activeSession.rest)} style={{ width: '50px', height: '50px', background: T.card, borderRadius: '12px', border: 'none', color: T.accent, fontWeight: '900' }}>{i + 1}</button>
+                  <Stepper valKey={`${ex.id}-s${i}-w`} label="KG" color="#FFF" />
+                  <Stepper valKey={`${ex.id}-s${i}-r`} label="REPS" color={T.accent} />
+                </div>
+              ))}
+            </div>
+          ))}
+
+          {/* ADD-ON POOL */}
+          <div style={{ padding: '0 10px' }}>
+            <div style={{ fontSize: '11px', fontWeight: '900', color: T.subtext, marginBottom: '10px', textTransform: 'uppercase' }}>Add Extra Activity:</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              {EXTRA_POOL.filter(e => !activeSession.list.find(al => al.id === e.id)).map(ex => (
+                <button key={ex.id} onClick={() => addExtra(ex)} style={{ background: T.surface, border: `1px dashed ${T.border}`, padding: '15px', borderRadius: '15px', color: T.subtext, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                  <Plus size={14}/> {ex.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button onClick={finishSession} style={{ position: 'fixed', bottom: '30px', left: '20px', right: '20px', background: T.accent, padding: '24px', borderRadius: '20px', fontWeight: '900', color: '#000', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>FINISH & LOG</button>
+        </div>
+      )}
+
+      {/* VIEW: LOG */}
+      {view === 'log' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {history.map((h, i) => (
+            <div key={i} style={{ background: T.surface, padding: '20px', borderRadius: '20px', borderLeft: `5px solid ${h.color}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: '900', fontSize: '14px' }}>{h.date}</span>
+                <span style={{ color: h.color, fontWeight: '900', fontSize: '11px' }}>{h.name}</span>
+              </div>
+            </div>
+          ))}
+          {history.length === 0 && <div style={{ textAlign: 'center', color: T.subtext, marginTop: '100px' }}>No history found.</div>}
+        </div>
+      )}
+
+      {/* TIMER HUD */}
+      {timeLeft > 0 && (
+        <div onClick={() => setTimeLeft(0)} style={{ position: 'fixed', bottom: '25px', left: '20px', right: '20px', background: T.accent, color: '#000', padding: '24px', borderRadius: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 1000 }}>
+          <span style={{ fontWeight: '950', fontSize: '40px' }}>{timeLeft}s</span>
+          <div style={{ fontWeight: '900', textAlign: 'right', lineHeight: '1' }}>RESTING<br/><span style={{fontSize: '10px'}}>TAP TO SKIP</span></div>
+        </div>
+      )}
+
+      {/* TICKER */}
+      {useEffect(() => {
+        let timer;
+        if (timeLeft > 0) timer = setInterval(() => setTimeLeft(p => p - 1), 1000);
+        return () => clearInterval(timer);
+      }, [timeLeft])}
+
+    </div>
+  );
+};
+
+export default TitanTracker;
