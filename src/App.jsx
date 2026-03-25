@@ -39,31 +39,36 @@ const TitanTracker = () => {
 
   // --- 3. PERSISTENCE ---
   useEffect(() => {
-    const saved = localStorage.getItem('titan_v53_data');
+    const saved = localStorage.getItem('titan_v54_data');
     if (saved) setHistory(JSON.parse(saved));
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('titan_v53_data', JSON.stringify(history));
+    localStorage.setItem('titan_v54_data', JSON.stringify(history));
   }, [history]);
 
-  // --- 4. ENGINE (STREAKS & LOGIC) ---
+  // --- 4. ENGINE (STREAKS & RECOVERY) ---
   const stats = useMemo(() => {
-    if (!history.length) return { status: 'READY', streak: 0 };
     const now = new Date();
-    const diffHours = (now - new Date(history[0].fullDate)) / 3600000;
+    const lastSession = history[0];
+    const diffHours = lastSession ? (now - new Date(lastSession.fullDate)) / 3600000 : 100;
     
     let streak = 0;
-    for (let i = 0; i < 8; i++) {
-      const start = new Date(); start.setDate(now.getDate() - (i * 7 + now.getDay()));
-      const end = new Date(start); end.setDate(start.getDate() + 7);
+    for (let i = 0; i < 12; i++) {
+      const weekStart = new Date(); weekStart.setDate(now.getDate() - (i * 7 + now.getDay()));
+      const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 7);
       const count = history.filter(h => {
         const d = new Date(h.fullDate);
-        return d >= start && d < end && !['REST', 'WALK', 'SWIM', 'STRETCH'].includes(h.id);
+        return d >= weekStart && d < weekEnd && Object.keys(WORKOUTS).includes(h.id);
       }).length;
       if (count >= 3) streak++; else break;
     }
-    return { status: diffHours < 20 ? 'HEALING' : 'OPTIMAL', streak };
+
+    return { 
+      status: diffHours < 20 ? 'HEALING' : 'OPTIMAL',
+      statusColor: diffHours < 20 ? '#F59E0B' : T.accent,
+      streak 
+    };
   }, [history]);
 
   // --- 5. HANDLERS ---
@@ -119,7 +124,7 @@ const TitanTracker = () => {
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: '900', margin: 0 }}>TITAN<span style={{color: T.accent}}>+</span></h1>
           <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-            <span style={{ fontSize: '10px', color: stats.status === 'HEALING' ? '#F59E0B' : T.accent, fontWeight: '900' }}>{stats.status}</span>
+            <span style={{ fontSize: '10px', color: stats.statusColor, fontWeight: '900' }}>{stats.status}</span>
             <span style={{ fontSize: '10px', color: T.subtext, fontWeight: '900', display: 'flex', alignItems: 'center', gap: '3px' }}>
               <Flame size={10} fill={stats.streak > 0 ? '#FF6B00' : 'none'}/> {stats.streak} WK STREAK
             </span>
@@ -131,32 +136,44 @@ const TitanTracker = () => {
         </div>
       </div>
 
-      {/* MENU */}
+      {/* VIEW: MENU */}
       {view === 'menu' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          {/* DAILY TARGET CARD */}
           <div style={{ background: T.surface, padding: '25px', borderRadius: '24px', border: `1px solid ${T.border}` }}>
-            <div style={{ fontSize: '10px', fontWeight: '900', color: T.subtext, marginBottom: '8px' }}>SUGGESTED SESSION</div>
+            <div style={{ fontSize: '10px', fontWeight: '900', color: T.subtext, marginBottom: '8px' }}>SUGGESTED TARGET</div>
             <div style={{ fontSize: '20px', fontWeight: '900', marginBottom: '20px' }}>
               {history[0]?.id === 'SHRED' ? 'POWER PROTOCOL' : 'SHRED PROTOCOL'}
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => startWorkout(history[0]?.id === 'SHRED' ? 'POWER' : 'SHRED')} style={{ flex: 2, background: T.accent, border: 'none', padding: '18px', borderRadius: '15px', fontWeight: '900' }}>TRAIN</button>
-              <button onClick={logRest} style={{ flex: 1, background: T.card, color: T.rest, border: 'none', padding: '18px', borderRadius: '15px' }}><Coffee size={20} style={{margin:'0 auto'}}/></button>
+              <button onClick={() => startWorkout(history[0]?.id === 'SHRED' ? 'POWER' : 'SHRED')} style={{ flex: 2, background: T.accent, border: 'none', padding: '16px', borderRadius: '14px', fontWeight: '900' }}>START NOW</button>
+              <button onClick={logRest} style={{ flex: 1, background: T.card, color: T.rest, border: 'none', padding: '16px', borderRadius: '14px' }}><Coffee size={20} style={{margin:'0 auto'}}/></button>
             </div>
           </div>
-
+          
+          {/* MANUAL PROTOCOL SELECT (FIXED: BOTH SHOWING) */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-             {EXTRAS.map(ext => (
-               <button key={ext.id} onClick={() => startExtra(ext)} style={{ background: T.surface, border: `1px solid ${T.border}`, padding: '16px', borderRadius: '18px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {Object.values(WORKOUTS).map(w => (
+              <button key={w.id} onClick={() => startWorkout(w.id)} style={{ background: T.surface, border: `1px solid ${T.border}`, padding: '20px', borderRadius: '20px', textAlign: 'left', color: '#FFF' }}>
+                <div style={{ color: w.color, fontWeight: '900', fontSize: '14px' }}>{w.name}</div>
+                <div style={{ color: T.subtext, fontSize: '10px', marginTop: '4px' }}>{w.rest}s REST</div>
+              </button>
+            ))}
+          </div>
+
+          {/* ADDITIONAL ACTIVITIES */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginTop: '10px' }}>
+            {EXTRAS.map(ext => (
+               <button key={ext.id} onClick={() => startExtra(ext)} style={{ background: T.surface, border: `1px solid ${T.border}`, padding: '12px', borderRadius: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
                  <div style={{color: ext.color}}>{ext.icon}</div>
-                 <div style={{fontSize: '13px', fontWeight: '700', color: '#FFF'}}>{ext.name}</div>
+                 <div style={{fontSize: '9px', fontWeight: '900', color: '#FFF', textAlign: 'center'}}>{ext.name.toUpperCase()}</div>
                </button>
              ))}
           </div>
         </div>
       )}
 
-      {/* TRAINING */}
+      {/* VIEW: TRAIN */}
       {view === 'train' && activeSession && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '120px' }}>
           {activeSession.list.map(ex => (
@@ -165,8 +182,8 @@ const TitanTracker = () => {
               {[...Array(setCounts[ex.id] || 1)].map((_, i) => (
                 <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
                   <button type="button" onClick={() => setTimeLeft(activeSession.rest)} style={{ width: '50px', height: '50px', background: T.card, borderRadius: '12px', border: 'none', color: T.accent, fontWeight: '900' }}>{i + 1}</button>
-                  <input type="number" placeholder={ex.type === 'MIN' ? 'MIN' : 'KG'} onChange={e => setSessionData({...sessionData, [`${ex.id}-s${i}-w`]: e.target.value})} style={{ flex: 1, height: '50px', background: '#000', border: `1px solid ${T.border}`, borderRadius: '12px', color: '#FFF', textAlign: 'center' }} />
-                  <input type="number" placeholder={ex.type === 'MIN' ? 'BPM' : 'REPS'} onChange={e => setSessionData({...sessionData, [`${ex.id}-s${i}-r`]: e.target.value})} style={{ flex: 1, height: '50px', background: '#000', border: `1px solid ${T.border}`, borderRadius: '12px', color: T.accent, textAlign: 'center' }} />
+                  <input type="number" placeholder={activeSession.rest === 0 ? 'MIN' : 'KG'} onChange={e => setSessionData({...sessionData, [`${ex.id}-s${i}-w`]: e.target.value})} style={{ flex: 1, height: '50px', background: '#000', border: `1px solid ${T.border}`, borderRadius: '12px', color: '#FFF', textAlign: 'center' }} />
+                  <input type="number" placeholder={activeSession.rest === 0 ? 'BPM' : 'REPS'} onChange={e => setSessionData({...sessionData, [`${ex.id}-s${i}-r`]: e.target.value})} style={{ flex: 1, height: '50px', background: '#000', border: `1px solid ${T.border}`, borderRadius: '12px', color: T.accent, textAlign: 'center' }} />
                 </div>
               ))}
               {activeSession.rest > 0 && (
@@ -178,7 +195,7 @@ const TitanTracker = () => {
         </div>
       )}
 
-      {/* LOG */}
+      {/* VIEW: LOG */}
       {view === 'log' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {history.map((h, i) => (
@@ -201,7 +218,7 @@ const TitanTracker = () => {
         </div>
       )}
 
-      {/* TIMER TICKER */}
+      {/* TIMER LOGIC */}
       {useEffect(() => {
         let timer;
         if (timeLeft > 0) timer = setInterval(() => setTimeLeft(p => p - 1), 1000);
