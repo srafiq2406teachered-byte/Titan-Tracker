@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 
 const TitanTracker = () => {
-  // --- MASTER PROTOCOL (Fixed Core) ---
+  // --- THE FULL ROSTER (Core + Preset Extras) ---
   const MASTER_PROTOCOL = [
     { id: "A1", name: "Leg Press Machine", sets: 3, group: "Legs", rest: 60 },
     { id: "A2", name: "Lat Pulldown Machine", sets: 3, group: "Back", rest: 60 },
@@ -14,65 +14,45 @@ const TitanTracker = () => {
     { id: "C1", name: "Seated Cable Row", sets: 3, group: "Back", rest: 60 },
     { id: "C2", name: "DB Overhead Press", sets: 3, group: "Shoulders", rest: 60 },
     { id: "D1", name: "Plank / Captain's Chair", sets: 3, group: "Core", rest: 30 },
-    { id: "D2", name: "Walking Lunges", sets: 3, group: "Legs", rest: 30 }
+    { id: "D2", name: "Walking Lunges", sets: 3, group: "Legs", rest: 30 },
+    // --- PRESET EXTRAS RESTORED ---
+    { id: "E1", name: "Hip Abductor", sets: 3, group: "Legs", rest: 45, isExtra: true },
+    { id: "E2", name: "Hip Adductor", sets: 3, group: "Legs", rest: 45, isExtra: true },
+    { id: "E3", name: "Bicep Curl Machine", sets: 3, group: "Arms", rest: 45, isExtra: true },
+    { id: "E4", name: "Tricep Pushdown", sets: 3, group: "Arms", rest: 45, isExtra: true }
   ];
 
   const [view, setView] = useState('train');
   const [mounted, setMounted] = useState(false);
   const [completedSets, setCompletedSets] = useState({});
   const [exerciseData, setExerciseData] = useState({});
-  const [customExercises, setCustomExercises] = useState([]); // Extra activities state
   const [history, setHistory] = useState([]);
   const [expandedLog, setExpandedLog] = useState(null);
   const [timeLeft, setTimeLeft] = useState(0);
 
   // --- PERSISTENCE ---
   useEffect(() => {
-    const savedSets = localStorage.getItem('titan_v34_sets');
-    const savedData = localStorage.getItem('titan_v34_data');
-    const savedHistory = localStorage.getItem('titan_v34_history');
-    const savedCustom = localStorage.getItem('titan_v34_custom');
-    
+    const savedSets = localStorage.getItem('titan_v35_sets');
+    const savedData = localStorage.getItem('titan_v35_data');
+    const savedHistory = localStorage.getItem('titan_v35_history');
     if (savedSets) setCompletedSets(JSON.parse(savedSets));
     if (savedData) setExerciseData(JSON.parse(savedData));
     if (savedHistory) setHistory(JSON.parse(savedHistory));
-    if (savedCustom) setCustomExercises(JSON.parse(savedCustom));
     setMounted(true);
   }, []);
 
   useEffect(() => {
     if (mounted) {
-      localStorage.setItem('titan_v34_sets', JSON.stringify(completedSets));
-      localStorage.setItem('titan_v34_data', JSON.stringify(exerciseData));
-      localStorage.setItem('titan_v34_history', JSON.stringify(history));
-      localStorage.setItem('titan_v34_custom', JSON.stringify(customExercises));
+      localStorage.setItem('titan_v35_sets', JSON.stringify(completedSets));
+      localStorage.setItem('titan_v35_data', JSON.stringify(exerciseData));
+      localStorage.setItem('titan_v35_history', JSON.stringify(history));
     }
-  }, [completedSets, exerciseData, history, customExercises, mounted]);
+  }, [completedSets, exerciseData, history, mounted]);
 
-  // --- LOGIC: ADD EXTRA ACTIVITY ---
-  const addExtraActivity = () => {
-    const name = prompt("Enter machine or exercise name:");
-    if (!name) return;
-    const newEx = {
-      id: `custom-${Date.now()}`,
-      name: name,
-      sets: 3, // Defaulting to 3 sets
-      group: "Extra",
-      rest: 60,
-      isCustom: true
-    };
-    setCustomExercises([...customExercises, newEx]);
-  };
-
-  const removeExtra = (id) => {
-    setCustomExercises(customExercises.filter(ex => ex.id !== id));
-  };
-
-  // --- ANALYTICS ---
-  const getSessionStats = () => {
+  // --- LOGIC ---
+  const getStats = () => {
     let vol = 0;
-    const allExercises = [...MASTER_PROTOCOL, ...customExercises];
-    allExercises.forEach(ex => {
+    MASTER_PROTOCOL.forEach(ex => {
       for (let i = 0; i < ex.sets; i++) {
         if (completedSets[`${ex.id}-${i}`]) {
           const w = parseFloat(exerciseData[`${ex.id}-${i}-w`] || 0);
@@ -84,16 +64,15 @@ const TitanTracker = () => {
     return { vol };
   };
 
-  const handleLogWorkout = () => {
-    const stats = getSessionStats();
-    if (stats.vol === 0) return alert("Log some data first!");
+  const handleFinish = () => {
+    const stats = getStats();
+    if (stats.vol === 0) return;
 
-    const allExercises = [...MASTER_PROTOCOL, ...customExercises];
     const logEntry = {
       id: Date.now(),
       date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
-      totalVolume: stats.vol,
-      details: allExercises.map(ex => ({
+      vol: stats.vol,
+      details: MASTER_PROTOCOL.map(ex => ({
         name: ex.name,
         sets: [...Array(ex.sets)].map((_, i) => ({
           done: completedSets[`${ex.id}-${i}`],
@@ -106,22 +85,21 @@ const TitanTracker = () => {
     setHistory([logEntry, ...history]);
     setCompletedSets({});
     setExerciseData({});
-    setCustomExercises([]); // Clear extras after logging
     setView('calendar');
   };
 
-  const THEME = { orange: '#FF5C00', bg: '#000', card: '#121212', border: '#282828' };
-  const currentStats = getSessionStats();
+  const THEME = { orange: '#FF5C00', bg: '#000', card: '#111', border: '#222' };
+  const stats = getStats();
 
   if (!mounted) return null;
 
   return (
-    <div style={{ backgroundColor: THEME.bg, minHeight: '100vh', color: '#fff', padding: '15px 15px 120px 15px', fontFamily: 'sans-serif' }}>
+    <div style={{ backgroundColor: THEME.bg, minHeight: '100vh', color: '#fff', padding: '15px 15px 100px 15px', fontFamily: 'sans-serif' }}>
       
       {/* HEADER */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
-        <h1 style={{ color: THEME.orange, fontWeight: '950', fontStyle: 'italic', margin: 0 }}>TITAN</h1>
-        <div style={{ display: 'flex', gap: '8px', background: '#111', padding: '5px', borderRadius: '15px', border: '1px solid #222' }}>
+        <h1 style={{ color: THEME.orange, fontWeight: '900', fontStyle: 'italic', margin: 0 }}>TITAN</h1>
+        <div style={{ display: 'flex', gap: '8px', background: '#111', padding: '5px', borderRadius: '15px' }}>
           <button onClick={() => setView('train')} style={{ border: 'none', background: view === 'train' ? THEME.orange : 'transparent', padding: '10px', borderRadius: '10px' }}><Dumbbell size={20} color={view === 'train' ? '#000' : '#444'} /></button>
           <button onClick={() => setView('metrics')} style={{ border: 'none', background: view === 'metrics' ? THEME.orange : 'transparent', padding: '10px', borderRadius: '10px' }}><TrendingUp size={20} color={view === 'metrics' ? '#000' : '#444'} /></button>
           <button onClick={() => setView('calendar')} style={{ border: 'none', background: view === 'calendar' ? THEME.orange : 'transparent', padding: '10px', borderRadius: '10px' }}><History size={20} color={view === 'calendar' ? '#000' : '#444'} /></button>
@@ -131,11 +109,10 @@ const TitanTracker = () => {
       {/* TRAIN VIEW */}
       {view === 'train' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          {[...MASTER_PROTOCOL, ...customExercises].map(ex => (
-            <div key={ex.id} style={{ background: THEME.card, padding: '20px', borderRadius: '22px', border: `1px solid ${THEME.border}`, position: 'relative' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                <span style={{ fontWeight: '900', fontSize: '13px', color: THEME.orange }}>{ex.name.toUpperCase()}</span>
-                {ex.isCustom && <button onClick={() => removeExtra(ex.id)} style={{ background: 'transparent', border: 'none', color: '#ff4444' }}><Trash2 size={16}/></button>}
+          {MASTER_PROTOCOL.map(ex => (
+            <div key={ex.id} style={{ background: THEME.card, padding: '20px', borderRadius: '22px', border: `1px solid ${ex.isExtra ? '#1a1a1a' : THEME.border}`, borderLeft: ex.isExtra ? '4px solid #444' : `4px solid ${THEME.orange}` }}>
+              <div style={{ fontWeight: '900', fontSize: '13px', color: ex.isExtra ? '#666' : THEME.orange, marginBottom: '15px' }}>
+                {ex.name.toUpperCase()} {ex.isExtra && "(EXTRA)"}
               </div>
               
               {[...Array(ex.sets)].map((_, i) => (
@@ -145,7 +122,7 @@ const TitanTracker = () => {
                       setCompletedSets(prev => ({ ...prev, [`${ex.id}-${i}`]: !prev[`${ex.id}-${i}`] }));
                       if (!completedSets[`${ex.id}-${i}`]) setTimeLeft(ex.rest);
                     }}
-                    style={{ width: '50px', height: '50px', borderRadius: '12px', border: 'none', background: completedSets[`${ex.id}-${i}`] ? THEME.orange : '#1a1a1a', color: '#000', fontWeight: '900' }}
+                    style={{ width: '50px', height: '50px', borderRadius: '12px', border: 'none', background: completedSets[`${ex.id}-${i}`] ? (ex.isExtra ? '#444' : THEME.orange) : '#1a1a1a', color: '#000', fontWeight: '900' }}
                   >
                     {i+1}
                   </button>
@@ -155,12 +132,7 @@ const TitanTracker = () => {
               ))}
             </div>
           ))}
-          
-          <button onClick={addExtraActivity} style={{ background: '#111', color: THEME.orange, padding: '15px', borderRadius: '15px', border: `1px dashed ${THEME.orange}`, fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-            <PlusCircle size={20} /> ADD EXTRA ACTIVITY
-          </button>
-          
-          <button onClick={handleLogWorkout} style={{ background: THEME.orange, padding: '22px', borderRadius: '18px', border: 'none', fontWeight: '950', fontSize: '16px', color: '#000', marginTop: '10px' }}>FINISH & LOG SESSION</button>
+          <button onClick={handleFinish} style={{ background: THEME.orange, padding: '25px', borderRadius: '20px', border: 'none', fontWeight: '900', fontSize: '18px', color: '#000' }}>LOG SESSION</button>
         </div>
       )}
 
@@ -168,33 +140,29 @@ const TitanTracker = () => {
       {view === 'metrics' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ background: THEME.card, padding: '30px', borderRadius: '25px', textAlign: 'center', border: `1px solid ${THEME.border}` }}>
-            <div style={{ fontSize: '11px', color: '#555', fontWeight: '900', letterSpacing: '1px' }}>SESSION VOLUME</div>
-            <div style={{ fontSize: '56px', fontWeight: '950', color: THEME.orange }}>{currentStats.vol.toLocaleString()} <span style={{ fontSize: '18px' }}>KG</span></div>
+            <div style={{ fontSize: '12px', color: '#666', fontWeight: '900' }}>SESSION VOLUME</div>
+            <div style={{ fontSize: '50px', fontWeight: '900', color: THEME.orange }}>{stats.vol.toLocaleString()}kg</div>
           </div>
-          
           <div style={{ background: THEME.card, padding: '20px', borderRadius: '25px', border: `1px solid ${THEME.border}` }}>
-            <div style={{ fontSize: '11px', color: '#555', fontWeight: '900', marginBottom: '15px' }}>VOLUME HISTORY</div>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '120px', gap: '5px' }}>
+            <div style={{ fontSize: '12px', color: '#666', fontWeight: '900', marginBottom: '15px' }}>VOLUME HISTORY (LAST 10)</div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '100px', gap: '5px' }}>
               {history.slice(-10).reverse().map((h, i) => (
-                <div key={i} style={{ flex: 1, background: THEME.orange, height: `${(h.totalVolume / Math.max(...history.map(x => x.totalVolume), 1)) * 100}%`, borderRadius: '4px' }}></div>
+                <div key={i} style={{ flex: 1, background: THEME.orange, height: `${(h.vol / Math.max(...history.map(x => x.vol), 1)) * 100}%`, borderRadius: '4px' }}></div>
               ))}
             </div>
           </div>
         </div>
       )}
 
-      {/* LOGS VIEW */}
+      {/* CALENDAR/LOGS VIEW */}
       {view === 'calendar' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {history.map(log => (
             <div key={log.id} style={{ background: THEME.card, borderRadius: '20px', border: `1px solid ${THEME.border}`, overflow: 'hidden' }}>
               <div onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)} style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: '900', fontSize: '16px' }}>{log.date}</div>
-                  <div style={{ fontSize: '12px', color: '#555' }}>{log.details.length} Exercises</div>
-                </div>
+                <div><div style={{ fontWeight: '900', fontSize: '16px' }}>{log.date}</div><div style={{ fontSize: '12px', color: '#444' }}>{log.details.length} Exercises</div></div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  <div style={{ color: THEME.orange, fontWeight: '900', fontSize: '20px' }}>{log.totalVolume.toLocaleString()}kg</div>
+                  <div style={{ color: THEME.orange, fontWeight: '900', fontSize: '20px' }}>{log.vol.toLocaleString()}kg</div>
                   {expandedLog === log.id ? <ChevronUp size={18}/> : <ChevronDown size={18}/>}
                 </div>
               </div>
@@ -203,11 +171,9 @@ const TitanTracker = () => {
                   {log.details.map((ex, i) => (
                     <div key={i} style={{ borderTop: '1px solid #1a1a1a', padding: '10px 0' }}>
                       <div style={{ fontSize: '11px', fontWeight: '900', color: THEME.orange, marginBottom: '5px' }}>{ex.name}</div>
-                      <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         {ex.sets.map((s, si) => (
-                          <div key={si} style={{ fontSize: '10px', background: '#111', padding: '4px 8px', borderRadius: '6px' }}>
-                            {s.w}kg x {s.r}
-                          </div>
+                          <div key={si} style={{ fontSize: '10px', background: '#111', padding: '4px 8px', borderRadius: '6px' }}>{s.w}kg x {s.r}</div>
                         ))}
                       </div>
                     </div>
@@ -221,8 +187,8 @@ const TitanTracker = () => {
 
       {/* TIMER HUD */}
       {timeLeft > 0 && (
-        <div style={{ position: 'fixed', bottom: '30px', left: '20px', right: '20px', background: '#fff', color: '#000', padding: '20px', borderRadius: '35px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 500, border: `5px solid ${THEME.orange}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}><Clock size={28} /> <span style={{ fontSize: '36px', fontWeight: '900' }}>{timeLeft}s</span></div>
+        <div style={{ position: 'fixed', bottom: '30px', left: '20px', right: '20px', background: '#fff', color: '#000', padding: '20px', borderRadius: '35px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 1000, border: `4px solid ${THEME.orange}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><Clock size={28} /> <span style={{ fontSize: '36px', fontWeight: '900' }}>{timeLeft}s</span></div>
           <button onClick={() => setTimeLeft(0)} style={{ background: THEME.orange, border: 'none', padding: '12px 25px', borderRadius: '15px', fontWeight: '900' }}>SKIP</button>
         </div>
       )}
