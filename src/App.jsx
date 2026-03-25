@@ -40,11 +40,11 @@ const TitanTracker = () => {
   const [accent, setAccent] = useState('#10B981');
   const [fontSize, setFontSize] = useState(16);
   const [bio, setBio] = useState({ weight: 80, height: 180, age: 30, sex: 'm' });
-  const [orm, setOrm] = useState({ weight: 60, reps: 10 }); // 1RM Calculator State
+  const [orm, setOrm] = useState({ weight: 60, reps: 10 });
 
   // --- 3. PERSISTENCE ---
   useEffect(() => {
-    const saved = localStorage.getItem('titan_v66_mobile');
+    const saved = localStorage.getItem('titan_v67_fix');
     if (saved) {
       const d = JSON.parse(saved);
       setHistory(d.history || []); setAccent(d.accent || '#10B981');
@@ -53,7 +53,7 @@ const TitanTracker = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('titan_v66_mobile', JSON.stringify({ history, accent, fontSize, bio }));
+    localStorage.setItem('titan_v67_fix', JSON.stringify({ history, accent, fontSize, bio }));
   }, [history, accent, fontSize, bio]);
 
   // --- 4. CALCULATIONS ---
@@ -62,10 +62,10 @@ const TitanTracker = () => {
     ? Math.round(10 * bio.weight + 6.25 * bio.height - 5 * bio.age + 5) 
     : Math.round(10 * bio.weight + 6.25 * bio.height - 5 * bio.age - 161), [bio]);
 
-  // Brzycki Formula for 1RM
   const calculatedOrm = useMemo(() => {
+    if (orm.reps <= 0) return 0;
     if (orm.reps === 1) return orm.weight;
-    return Math.round(orm.weight * (36 / (37 - orm.reps)));
+    return Math.round(orm.weight * (1 + orm.reps / 30));
   }, [orm]);
 
   const totalVol = useMemo(() => history.reduce((acc, h) => acc + (h.volume || 0), 0), [history]);
@@ -115,17 +115,74 @@ const TitanTracker = () => {
   };
 
   return (
-    <div style={{ background: T.bg, minHeight: '100vh', color: T.text, padding: '20px', fontFamily: 'sans-serif', fontSize: `${fontSize}px`, maxWidth: '500px', margin: '0 auto', boxSizing: 'border-box' }}>
+    <div style={{ background: T.bg, minHeight: '100vh', color: T.text, padding: '20px', fontFamily: 'sans-serif', fontSize: `${fontSize}px`, maxWidth: '500px', margin: '0 auto', boxSizing: 'border-box', position: 'relative' }}>
       
-      {/* NAVBAR */}
+      {/* NAVBAR - Ensure high z-index */}
       {view !== 'library' && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', position: 'relative', zIndex: 50 }}>
           <h1 style={{ fontSize: '1.4em', fontWeight: '900' }}>TITAN<span style={{color: T.accent}}>+</span></h1>
           <div style={{ display: 'flex', background: T.surface, padding: '4px', borderRadius: '14px', gap: '4px' }}>
-            <button onClick={() => setView('menu')} style={{ border: 'none', padding: '10px', background: view === 'menu' ? T.card : 'transparent', color: view === 'menu' ? T.accent : T.subtext, borderRadius: '10px' }}><Play size={20}/></button>
-            <button onClick={() => setView('metrics')} style={{ border: 'none', padding: '10px', background: view === 'metrics' ? T.card : 'transparent', color: view === 'metrics' ? T.accent : T.subtext, borderRadius: '10px' }}><BarChart2 size={20}/></button>
-            <button onClick={() => setView('biometrics')} style={{ border: 'none', padding: '10px', background: view === 'biometrics' ? T.card : 'transparent', color: view === 'biometrics' ? T.accent : T.subtext, borderRadius: '10px' }}><Calculator size={20}/></button>
-            <button onClick={() => setView('settings')} style={{ border: 'none', padding: '10px', background: view === 'settings' ? T.card : 'transparent', color: view === 'settings' ? T.accent : T.subtext, borderRadius: '10px' }}><Settings size={20}/></button>
+            <button onClick={() => setView('menu')} style={{ border: 'none', padding: '10px', background: view === 'menu' ? T.card : 'transparent', color: view === 'menu' ? T.accent : T.subtext, borderRadius: '10px', cursor: 'pointer' }}><Play size={20}/></button>
+            <button onClick={() => setView('metrics')} style={{ border: 'none', padding: '10px', background: view === 'metrics' ? T.card : 'transparent', color: view === 'metrics' ? T.accent : T.subtext, borderRadius: '10px', cursor: 'pointer' }}><BarChart2 size={20}/></button>
+            <button onClick={() => setView('biometrics')} style={{ border: 'none', padding: '10px', background: view === 'biometrics' ? T.card : 'transparent', color: view === 'biometrics' ? T.accent : T.subtext, borderRadius: '10px', cursor: 'pointer' }}><Calculator size={20}/></button>
+            <button onClick={() => setView('settings')} style={{ border: 'none', padding: '10px', background: view === 'settings' ? T.card : 'transparent', color: view === 'settings' ? T.accent : T.subtext, borderRadius: '10px', cursor: 'pointer' }}><Settings size={20}/></button>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW: MENU - Added higher z-index and explicit cursor */}
+      {view === 'menu' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', position: 'relative', zIndex: 40 }}>
+          {Object.values(WORKOUTS).map(w => (
+            <button 
+              key={w.id} 
+              onClick={() => startWorkout(w.id)} 
+              style={{ 
+                background: T.surface, 
+                padding: '25px', 
+                borderRadius: '24px', 
+                border: `1px solid ${T.border}`, 
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'block',
+                width: '100%',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+              }}
+            >
+              <div style={{ color: w.color, fontWeight: '900', fontSize: '1.2em' }}>{w.name}</div>
+              <div style={{ color: T.subtext, fontSize: '0.8em', marginTop: '5px' }}>TAP TO START</div>
+            </button>
+          ))}
+          <button onClick={() => setView('log')} style={{ background: T.card, border: 'none', padding: '15px', borderRadius: '15px', color: '#FFF', fontWeight: '600', cursor: 'pointer' }}>VIEW RECENT LOGS</button>
+        </div>
+      )}
+
+      {/* VIEW: TRAIN */}
+      {view === 'train' && activeSession && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', paddingBottom: '160px' }}>
+          {activeSession.list.map(ex => (
+            <div key={ex.id} style={{ background: T.surface, padding: '15px', borderRadius: '20px', border: `1px solid ${T.border}` }}>
+              <div style={{ fontWeight: '900', marginBottom: '12px', color: '#FFF' }}>{ex.name}</div>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                  <button onClick={() => setTimeLeft(activeSession.rest)} style={{ width: '45px', height: '45px', background: T.card, borderRadius: '10px', border: 'none', color: T.accent, fontWeight: '900', cursor: 'pointer' }}>{i + 1}</button>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#0F172A', borderRadius: '10px' }}>
+                    <button onClick={() => updateVal(`${ex.id}-s${i}-w`, -1)} style={{ padding: '10px', color: T.accent, background: 'none', border: 'none', cursor: 'pointer' }}><Minus size={14}/></button>
+                    <div style={{ flex: 1, textAlign: 'center', fontWeight: '900' }}>{sessionData[`${ex.id}-s${i}-w`] || 0}kg</div>
+                    <button onClick={() => updateVal(`${ex.id}-s${i}-w`, 1)} style={{ padding: '10px', color: T.accent, background: 'none', border: 'none', cursor: 'pointer' }}><Plus size={14}/></button>
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#0F172A', borderRadius: '10px' }}>
+                    <button onClick={() => updateVal(`${ex.id}-s${i}-r`, -1)} style={{ padding: '10px', color: T.accent, background: 'none', border: 'none', cursor: 'pointer' }}><Minus size={14}/></button>
+                    <div style={{ flex: 1, textAlign: 'center', color: T.accent, fontWeight: '900' }}>{sessionData[`${ex.id}-s${i}-r`] || 0}</div>
+                    <button onClick={() => updateVal(`${ex.id}-s${i}-r`, 1)} style={{ padding: '10px', color: T.accent, background: 'none', border: 'none', cursor: 'pointer' }}><Plus size={14}/></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+          <div style={{ position: 'fixed', bottom: '25px', left: '20px', right: '20px', display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '10px', maxWidth: '460px', margin: '0 auto', zIndex: 100 }}>
+            <button onClick={() => setView('library')} style={{ background: T.surface, border: `2px solid ${T.accent}`, padding: '18px', borderRadius: '18px', color: T.accent, fontWeight: '900', cursor: 'pointer' }}>+ EXTRA</button>
+            <button onClick={finishSession} style={{ background: T.accent, border: 'none', padding: '18px', borderRadius: '18px', color: '#000', fontWeight: '950', cursor: 'pointer' }}>FINISH LOG</button>
           </div>
         </div>
       )}
@@ -133,7 +190,6 @@ const TitanTracker = () => {
       {/* VIEW: BIOMETRICS & 1RM */}
       {view === 'biometrics' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          {/* BMI & BMR Section */}
           <div style={{ background: T.surface, padding: '20px', borderRadius: '24px', border: `1px solid ${T.border}` }}>
             <h2 style={{ fontSize: '1.2em', fontWeight: '900', marginBottom: '15px' }}>Physical Stats</h2>
             <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
@@ -147,142 +203,44 @@ const TitanTracker = () => {
               </div>
             ))}
           </div>
-
           <div style={{ background: T.accent, color: '#000', padding: '20px', borderRadius: '24px', display: 'flex', justifyContent: 'space-between' }}>
             <div><div style={{fontSize: '0.7em', fontWeight: '900'}}>BMI</div><div style={{fontSize: '1.8em', fontWeight: '950'}}>{bmi}</div></div>
             <div style={{textAlign: 'right'}}><div style={{fontSize: '0.7em', fontWeight: '900'}}>BMR</div><div style={{fontSize: '1.8em', fontWeight: '950'}}>{bmr}</div></div>
           </div>
-
-          {/* 1RM Section */}
-          <div style={{ background: T.surface, padding: '20px', borderRadius: '24px', border: `1px solid ${T.border}` }}>
-             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px' }}><Zap size={18} color={T.accent}/> <span style={{fontWeight: '900'}}>1RM CALCULATOR</span></div>
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
-               <div><div style={{fontSize: '0.7em', color: T.subtext}}>WEIGHT</div><input type="number" value={orm.weight} onChange={e => setOrm({...orm, weight: parseInt(e.target.value) || 0})} style={{ width: '100%', background: '#0F172A', border: 'none', color: '#FFF', padding: '10px', borderRadius: '8px', boxSizing: 'border-box' }} /></div>
-               <div><div style={{fontSize: '0.7em', color: T.subtext}}>REPS</div><input type="number" value={orm.reps} onChange={e => setOrm({...orm, reps: parseInt(e.target.value) || 0})} style={{ width: '100%', background: '#0F172A', border: 'none', color: '#FFF', padding: '10px', borderRadius: '8px', boxSizing: 'border-box' }} /></div>
-             </div>
-             <div style={{ textAlign: 'center', padding: '15px', background: T.card, borderRadius: '15px' }}>
-                <div style={{ fontSize: '0.7em', color: T.subtext }}>ESTIMATED MAX</div>
-                <div style={{ fontSize: '2em', fontWeight: '950', color: T.accent }}>{calculatedOrm} <span style={{fontSize: '0.5em'}}>KG</span></div>
-             </div>
-          </div>
         </div>
       )}
 
-      {/* VIEW: LIBRARY (FIXED SEARCH BOX WIDTH) */}
+      {/* VIEW: LIBRARY */}
       {view === 'library' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }} onClick={() => setView('train')}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer' }} onClick={() => setView('train')}>
             <ChevronLeft size={24} color={T.accent}/> <span style={{fontWeight: '900'}}>BACK TO TRAINING</span>
           </div>
-          
           <div style={{ position: 'relative', width: '100%' }}>
-            <Search size={20} style={{ position: 'absolute', left: '15px', top: '15px', color: T.accent, zIndex: 10 }} />
-            <input 
-              type="text" 
-              placeholder="Search Exercise..." 
-              value={searchQuery} 
-              onChange={(e) => setSearchQuery(e.target.value)} 
-              style={{ 
-                width: '100%', 
-                background: T.surface, 
-                border: `2px solid ${T.accent}44`, 
-                padding: '15px 15px 15px 45px', 
-                borderRadius: '15px', 
-                color: '#FFF', 
-                fontSize: '1em',
-                boxSizing: 'border-box', // CRITICAL FIX: Ensures padding doesn't add to width
-                outline: 'none'
-              }} 
-            />
+            <Search size={20} style={{ position: 'absolute', left: '15px', top: '15px', color: T.accent }} />
+            <input type="text" placeholder="Search Exercise..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ width: '100%', background: T.surface, border: `2px solid ${T.accent}44`, padding: '15px 15px 15px 45px', borderRadius: '15px', color: '#FFF', fontSize: '1em', boxSizing: 'border-box', outline: 'none' }} />
           </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {filteredLib.map(ex => (
-              <button key={ex.id} onClick={() => addExtra(ex)} style={{ background: T.surface, border: `1px solid ${T.border}`, padding: '20px', borderRadius: '20px', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: '900', color: '#FFF' }}>{ex.name}</div>
-                  <div style={{ color: T.accent, fontSize: '0.7em', fontWeight: '800', textTransform: 'uppercase' }}>{ex.muscle}</div>
-                </div>
-                <Plus size={24} color={T.accent}/>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* VIEW: TRAIN */}
-      {view === 'train' && activeSession && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', paddingBottom: '160px' }}>
-          {activeSession.list.map(ex => (
-            <div key={ex.id} style={{ background: T.surface, padding: '15px', borderRadius: '20px', border: `1px solid ${T.border}` }}>
-              <div style={{ fontWeight: '900', marginBottom: '12px', color: '#FFF' }}>{ex.name}</div>
-              {[...Array(3)].map((_, i) => (
-                <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                  <button onClick={() => setTimeLeft(activeSession.rest)} style={{ width: '45px', height: '45px', background: T.card, borderRadius: '10px', border: 'none', color: T.accent, fontWeight: '900' }}>{i + 1}</button>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#0F172A', borderRadius: '10px' }}>
-                    <button onClick={() => updateVal(`${ex.id}-s${i}-w`, -1)} style={{ padding: '10px', color: T.accent, background: 'none', border: 'none' }}><Minus size={14}/></button>
-                    <div style={{ flex: 1, textAlign: 'center', fontWeight: '900' }}>{sessionData[`${ex.id}-s${i}-w`] || 0}kg</div>
-                    <button onClick={() => updateVal(`${ex.id}-s${i}-w`, 1)} style={{ padding: '10px', color: T.accent, background: 'none', border: 'none' }}><Plus size={14}/></button>
-                  </div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#0F172A', borderRadius: '10px' }}>
-                    <button onClick={() => updateVal(`${ex.id}-s${i}-r`, -1)} style={{ padding: '10px', color: T.accent, background: 'none', border: 'none' }}><Minus size={14}/></button>
-                    <div style={{ flex: 1, textAlign: 'center', color: T.accent, fontWeight: '900' }}>{sessionData[`${ex.id}-s${i}-r`] || 0}</div>
-                    <button onClick={() => updateVal(`${ex.id}-s${i}-r`, 1)} style={{ padding: '10px', color: T.accent, background: 'none', border: 'none' }}><Plus size={14}/></button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ))}
-          <div style={{ position: 'fixed', bottom: '25px', left: '20px', right: '20px', display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '10px', maxWidth: '460px', margin: '0 auto' }}>
-            <button onClick={() => setView('library')} style={{ background: T.surface, border: `2px solid ${T.accent}`, padding: '18px', borderRadius: '18px', color: T.accent, fontWeight: '900' }}>+ EXTRA</button>
-            <button onClick={finishSession} style={{ background: T.accent, border: 'none', padding: '18px', borderRadius: '18px', color: '#000', fontWeight: '950' }}>FINISH LOG</button>
-          </div>
-        </div>
-      )}
-
-      {/* OTHER VIEWS (MENU/METRICS/SETTINGS) */}
-      {view === 'menu' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {Object.values(WORKOUTS).map(w => (
-            <button key={w.id} onClick={() => startWorkout(w.id)} style={{ background: T.surface, padding: '25px', borderRadius: '24px', border: `1px solid ${T.border}`, textAlign: 'left' }}>
-              <div style={{ color: w.color, fontWeight: '900', fontSize: '1.2em' }}>{w.name}</div>
+          {filteredLib.map(ex => (
+            <button key={ex.id} onClick={() => addExtra(ex)} style={{ background: T.surface, border: `1px solid ${T.border}`, padding: '20px', borderRadius: '20px', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
+              <div><div style={{ fontWeight: '900', color: '#FFF' }}>{ex.name}</div><div style={{ color: T.accent, fontSize: '0.7em', fontWeight: '800', textTransform: 'uppercase' }}>{ex.muscle}</div></div>
+              <Plus size={24} color={T.accent}/>
             </button>
           ))}
         </div>
       )}
 
-      {view === 'metrics' && (
-        <div style={{ background: T.surface, padding: '30px', borderRadius: '24px', textAlign: 'center' }}>
-          <div style={{ fontSize: '0.7em', color: T.subtext, fontWeight: '800' }}>TOTAL VOLUME</div>
-          <div style={{ fontSize: '3em', fontWeight: '950', color: T.accent }}>{totalVol.toLocaleString()} <span style={{fontSize: '0.4em'}}>KG</span></div>
-        </div>
-      )}
-
-      {view === 'settings' && (
-        <div style={{ background: T.surface, padding: '25px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div>
-            <div style={{ fontWeight: '900', marginBottom: '15px' }}>App Theme</div>
-            <div style={{ display: 'flex', gap: '15px' }}>
-              {Object.entries(THEMES).map(([k, v]) => (
-                <div key={k} onClick={() => setAccent(v.accent)} style={{ width: '45px', height: '45px', borderRadius: '50%', background: v.accent, border: accent === v.accent ? '4px solid #FFF' : 'none' }} />
-              ))}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontWeight: '900', marginBottom: '10px' }}>Text Size: {fontSize}px</div>
-            <input type="range" min="14" max="22" value={fontSize} onChange={(e) => setFontSize(parseInt(e.target.value))} style={{ width: '100%', accentColor: T.accent }} />
-          </div>
-        </div>
-      )}
-
-      {/* TIMER HUD */}
+      {/* TIMER HUD - Only render if timeLeft > 0 to prevent overlay issues */}
       {timeLeft > 0 && (
-        <div onClick={() => setTimeLeft(0)} style={{ position: 'fixed', bottom: '20px', left: '20px', right: '20px', background: T.accent, color: '#000', padding: '25px', borderRadius: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 2000 }}>
-          <span style={{ fontWeight: '950', fontSize: '2.5em' }}>{timeLeft}s</span>
-          <div style={{ fontWeight: '900' }}>RESTING</div>
+        <div onClick={() => setTimeLeft(0)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(10,15,30,0.9)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <div style={{ background: T.accent, color: '#000', padding: '40px', borderRadius: '40px', textAlign: 'center', boxShadow: `0 0 50px ${T.accent}44` }}>
+            <div style={{ fontWeight: '950', fontSize: '4em', lineHeight: '1' }}>{timeLeft}s</div>
+            <div style={{ fontWeight: '900', marginTop: '10px', letterSpacing: '2px' }}>RESTING</div>
+            <div style={{ fontSize: '0.6em', marginTop: '20px', opacity: 0.7 }}>TAP TO SKIP</div>
+          </div>
         </div>
       )}
 
+      {/* Logic for Timer */}
       {useEffect(() => {
         let t; if (timeLeft > 0) t = setInterval(() => setTimeLeft(p => p - 1), 1000);
         return () => clearInterval(t);
