@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Play, History, Plus, Minus, X, Settings, BarChart2, 
-  Calculator, ChevronLeft, Search, CheckCircle2, Target
+  Calculator, ChevronLeft, Search, CheckCircle2, Target, Zap
 } from 'lucide-react';
 
 const TitanTracker = () => {
-  // --- 1. CONFIG & THEMES ---
+  // --- 1. CONFIG ---
   const THEMES = {
     EMERALD: { accent: '#10B981' },
     SAPPHIRE: { accent: '#3B82F6' },
@@ -40,10 +40,11 @@ const TitanTracker = () => {
   const [accent, setAccent] = useState('#10B981');
   const [fontSize, setFontSize] = useState(16);
   const [bio, setBio] = useState({ weight: 80, height: 180, age: 30, sex: 'm' });
+  const [orm, setOrm] = useState({ weight: 60, reps: 10 }); // 1RM Calculator State
 
   // --- 3. PERSISTENCE ---
   useEffect(() => {
-    const saved = localStorage.getItem('titan_v65_final');
+    const saved = localStorage.getItem('titan_v66_mobile');
     if (saved) {
       const d = JSON.parse(saved);
       setHistory(d.history || []); setAccent(d.accent || '#10B981');
@@ -52,7 +53,7 @@ const TitanTracker = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('titan_v65_final', JSON.stringify({ history, accent, fontSize, bio }));
+    localStorage.setItem('titan_v66_mobile', JSON.stringify({ history, accent, fontSize, bio }));
   }, [history, accent, fontSize, bio]);
 
   // --- 4. CALCULATIONS ---
@@ -61,13 +62,19 @@ const TitanTracker = () => {
     ? Math.round(10 * bio.weight + 6.25 * bio.height - 5 * bio.age + 5) 
     : Math.round(10 * bio.weight + 6.25 * bio.height - 5 * bio.age - 161), [bio]);
 
+  // Brzycki Formula for 1RM
+  const calculatedOrm = useMemo(() => {
+    if (orm.reps === 1) return orm.weight;
+    return Math.round(orm.weight * (36 / (37 - orm.reps)));
+  }, [orm]);
+
   const totalVol = useMemo(() => history.reduce((acc, h) => acc + (h.volume || 0), 0), [history]);
   const filteredLib = useMemo(() => EXTRA_POOL.filter(ex => 
     ex.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     ex.muscle.toLowerCase().includes(searchQuery.toLowerCase())
   ), [searchQuery]);
 
-  // --- 5. WORKOUT ENGINE ---
+  // --- 5. ENGINES ---
   const startWorkout = (id) => {
     const p = WORKOUTS[id];
     const list = EXERCISES.filter(ex => p.ids.includes(ex.id));
@@ -98,7 +105,7 @@ const TitanTracker = () => {
     }).filter(d => d.sets.length > 0);
 
     const vol = details.reduce((acc, ex) => acc + ex.sets.reduce((sA, s) => sA + (s.w * s.r), 0), 0);
-    setHistory([{ id: activeSession.id, date: new Date().toLocaleDateString('en-GB'), name: activeSession.name, color: activeSession.color, volume: vol }, ...history]);
+    setHistory([{ id: activeSession.id, date: new Date().toLocaleDateString('en-GB'), name: activeSession.name, volume: vol }, ...history]);
     setActiveSession(null); setView('log');
   };
 
@@ -108,7 +115,7 @@ const TitanTracker = () => {
   };
 
   return (
-    <div style={{ background: T.bg, minHeight: '100vh', color: T.text, padding: '20px', fontFamily: 'sans-serif', fontSize: `${fontSize}px`, maxWidth: '500px', margin: '0 auto' }}>
+    <div style={{ background: T.bg, minHeight: '100vh', color: T.text, padding: '20px', fontFamily: 'sans-serif', fontSize: `${fontSize}px`, maxWidth: '500px', margin: '0 auto', boxSizing: 'border-box' }}>
       
       {/* NAVBAR */}
       {view !== 'library' && (
@@ -123,25 +130,82 @@ const TitanTracker = () => {
         </div>
       )}
 
-      {/* VIEW: BIOMETRICS (THE DISAPPEARED PAGE) */}
+      {/* VIEW: BIOMETRICS & 1RM */}
       {view === 'biometrics' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          {/* BMI & BMR Section */}
           <div style={{ background: T.surface, padding: '20px', borderRadius: '24px', border: `1px solid ${T.border}` }}>
-            <h2 style={{ fontSize: '1.2em', fontWeight: '900', marginBottom: '15px' }}>Biometrics Lab</h2>
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-              <button onClick={() => setBio({...bio, sex: 'm'})} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: bio.sex === 'm' ? T.accent : T.card, color: bio.sex === 'm' ? '#000' : '#FFF', fontWeight: '800' }}>Male</button>
-              <button onClick={() => setBio({...bio, sex: 'f'})} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: bio.sex === 'f' ? T.accent : T.card, color: bio.sex === 'f' ? '#000' : '#FFF', fontWeight: '800' }}>Female</button>
+            <h2 style={{ fontSize: '1.2em', fontWeight: '900', marginBottom: '15px' }}>Physical Stats</h2>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+              <button onClick={() => setBio({...bio, sex: 'm'})} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: bio.sex === 'm' ? T.accent : T.card, color: bio.sex === 'm' ? '#000' : '#FFF', fontWeight: '800' }}>MALE</button>
+              <button onClick={() => setBio({...bio, sex: 'f'})} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: bio.sex === 'f' ? T.accent : T.card, color: bio.sex === 'f' ? '#000' : '#FFF', fontWeight: '800' }}>FEMALE</button>
             </div>
             {['weight', 'height', 'age'].map(k => (
-              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <span style={{ textTransform: 'capitalize', fontWeight: '600' }}>{k}</span>
-                <input type="number" value={bio[k]} onChange={e => setBio({...bio, [k]: e.target.value})} style={{ width: '80px', background: '#0F172A', border: `1px solid ${T.border}`, color: T.accent, textAlign: 'center', padding: '8px', borderRadius: '8px', fontWeight: '900' }} />
+              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <span style={{textTransform: 'capitalize'}}>{k}</span>
+                <input type="number" value={bio[k]} onChange={e => setBio({...bio, [k]: e.target.value})} style={{ width: '70px', background: '#0F172A', border: 'none', color: T.accent, textAlign: 'center', borderRadius: '8px' }} />
               </div>
             ))}
           </div>
-          <div style={{ background: T.accent, color: '#000', padding: '25px', borderRadius: '24px', display: 'flex', justifyContent: 'space-between', boxShadow: `0 10px 20px ${T.accent}33` }}>
-            <div><div style={{ fontSize: '0.7em', fontWeight: '900' }}>BMI</div><div style={{ fontSize: '1.8em', fontWeight: '950' }}>{bmi}</div></div>
-            <div style={{ textAlign: 'right' }}><div style={{ fontSize: '0.7em', fontWeight: '900' }}>DAILY BMR</div><div style={{ fontSize: '1.8em', fontWeight: '950' }}>{bmr} <span style={{fontSize: '0.5em'}}>KCAL</span></div></div>
+
+          <div style={{ background: T.accent, color: '#000', padding: '20px', borderRadius: '24px', display: 'flex', justifyContent: 'space-between' }}>
+            <div><div style={{fontSize: '0.7em', fontWeight: '900'}}>BMI</div><div style={{fontSize: '1.8em', fontWeight: '950'}}>{bmi}</div></div>
+            <div style={{textAlign: 'right'}}><div style={{fontSize: '0.7em', fontWeight: '900'}}>BMR</div><div style={{fontSize: '1.8em', fontWeight: '950'}}>{bmr}</div></div>
+          </div>
+
+          {/* 1RM Section */}
+          <div style={{ background: T.surface, padding: '20px', borderRadius: '24px', border: `1px solid ${T.border}` }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px' }}><Zap size={18} color={T.accent}/> <span style={{fontWeight: '900'}}>1RM CALCULATOR</span></div>
+             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+               <div><div style={{fontSize: '0.7em', color: T.subtext}}>WEIGHT</div><input type="number" value={orm.weight} onChange={e => setOrm({...orm, weight: parseInt(e.target.value) || 0})} style={{ width: '100%', background: '#0F172A', border: 'none', color: '#FFF', padding: '10px', borderRadius: '8px', boxSizing: 'border-box' }} /></div>
+               <div><div style={{fontSize: '0.7em', color: T.subtext}}>REPS</div><input type="number" value={orm.reps} onChange={e => setOrm({...orm, reps: parseInt(e.target.value) || 0})} style={{ width: '100%', background: '#0F172A', border: 'none', color: '#FFF', padding: '10px', borderRadius: '8px', boxSizing: 'border-box' }} /></div>
+             </div>
+             <div style={{ textAlign: 'center', padding: '15px', background: T.card, borderRadius: '15px' }}>
+                <div style={{ fontSize: '0.7em', color: T.subtext }}>ESTIMATED MAX</div>
+                <div style={{ fontSize: '2em', fontWeight: '950', color: T.accent }}>{calculatedOrm} <span style={{fontSize: '0.5em'}}>KG</span></div>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW: LIBRARY (FIXED SEARCH BOX WIDTH) */}
+      {view === 'library' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }} onClick={() => setView('train')}>
+            <ChevronLeft size={24} color={T.accent}/> <span style={{fontWeight: '900'}}>BACK TO TRAINING</span>
+          </div>
+          
+          <div style={{ position: 'relative', width: '100%' }}>
+            <Search size={20} style={{ position: 'absolute', left: '15px', top: '15px', color: T.accent, zIndex: 10 }} />
+            <input 
+              type="text" 
+              placeholder="Search Exercise..." 
+              value={searchQuery} 
+              onChange={(e) => setSearchQuery(e.target.value)} 
+              style={{ 
+                width: '100%', 
+                background: T.surface, 
+                border: `2px solid ${T.accent}44`, 
+                padding: '15px 15px 15px 45px', 
+                borderRadius: '15px', 
+                color: '#FFF', 
+                fontSize: '1em',
+                boxSizing: 'border-box', // CRITICAL FIX: Ensures padding doesn't add to width
+                outline: 'none'
+              }} 
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {filteredLib.map(ex => (
+              <button key={ex.id} onClick={() => addExtra(ex)} style={{ background: T.surface, border: `1px solid ${T.border}`, padding: '20px', borderRadius: '20px', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: '900', color: '#FFF' }}>{ex.name}</div>
+                  <div style={{ color: T.accent, fontSize: '0.7em', fontWeight: '800', textTransform: 'uppercase' }}>{ex.muscle}</div>
+                </div>
+                <Plus size={24} color={T.accent}/>
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -176,26 +240,7 @@ const TitanTracker = () => {
         </div>
       )}
 
-      {/* VIEW: LIBRARY (RE-FIXED) */}
-      {view === 'library' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }} onClick={() => setView('train')}>
-            <ChevronLeft size={24} color={T.accent}/> <span style={{fontWeight: '900'}}>Back to Session</span>
-          </div>
-          <input type="text" placeholder="Search Exercises..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ width: '100%', background: T.surface, border: `2px solid ${T.border}`, padding: '15px', borderRadius: '15px', color: '#FFF' }} />
-          {filteredLib.map(ex => (
-            <button key={ex.id} onClick={() => addExtra(ex)} style={{ background: T.surface, border: `1px solid ${T.border}`, padding: '20px', borderRadius: '20px', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontWeight: '900', color: '#FFF', fontSize: '1.1em' }}>{ex.name}</div>
-                <div style={{ color: T.accent, fontSize: '0.7em', fontWeight: '800', textTransform: 'uppercase' }}>{ex.muscle}</div>
-              </div>
-              <Plus size={24} color={T.accent}/>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* VIEW: MENU & LOGS */}
+      {/* OTHER VIEWS (MENU/METRICS/SETTINGS) */}
       {view === 'menu' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {Object.values(WORKOUTS).map(w => (
@@ -206,21 +251,17 @@ const TitanTracker = () => {
         </div>
       )}
 
-      {/* VIEW: METRICS */}
       {view === 'metrics' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div style={{ background: T.surface, padding: '30px', borderRadius: '24px', textAlign: 'center', border: `1px solid ${T.border}` }}>
-            <div style={{ fontSize: '0.75em', color: T.subtext, fontWeight: '800' }}>TOTAL VOLUME</div>
-            <div style={{ fontSize: '3em', fontWeight: '950', color: T.accent }}>{totalVol.toLocaleString()} <span style={{fontSize: '0.4em'}}>KG</span></div>
-          </div>
+        <div style={{ background: T.surface, padding: '30px', borderRadius: '24px', textAlign: 'center' }}>
+          <div style={{ fontSize: '0.7em', color: T.subtext, fontWeight: '800' }}>TOTAL VOLUME</div>
+          <div style={{ fontSize: '3em', fontWeight: '950', color: T.accent }}>{totalVol.toLocaleString()} <span style={{fontSize: '0.4em'}}>KG</span></div>
         </div>
       )}
 
-      {/* VIEW: SETTINGS */}
       {view === 'settings' && (
         <div style={{ background: T.surface, padding: '25px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
-            <div style={{ fontWeight: '900', marginBottom: '15px' }}>App Accent</div>
+            <div style={{ fontWeight: '900', marginBottom: '15px' }}>App Theme</div>
             <div style={{ display: 'flex', gap: '15px' }}>
               {Object.entries(THEMES).map(([k, v]) => (
                 <div key={k} onClick={() => setAccent(v.accent)} style={{ width: '45px', height: '45px', borderRadius: '50%', background: v.accent, border: accent === v.accent ? '4px solid #FFF' : 'none' }} />
@@ -234,7 +275,7 @@ const TitanTracker = () => {
         </div>
       )}
 
-      {/* REST TIMER */}
+      {/* TIMER HUD */}
       {timeLeft > 0 && (
         <div onClick={() => setTimeLeft(0)} style={{ position: 'fixed', bottom: '20px', left: '20px', right: '20px', background: T.accent, color: '#000', padding: '25px', borderRadius: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 2000 }}>
           <span style={{ fontWeight: '950', fontSize: '2.5em' }}>{timeLeft}s</span>
