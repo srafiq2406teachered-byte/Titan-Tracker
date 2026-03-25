@@ -1,11 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Play, History, Plus, Minus, X, Dumbbell, 
-  Search, CheckCircle2, ChevronLeft, Filter
+  Play, History, Plus, Minus, X, Settings, 
+  BarChart2, Calculator, Save, ChevronLeft, Search, CheckCircle2
 } from 'lucide-react';
 
 const TitanTracker = () => {
-  // --- 1. CONFIGURATION ---
+  // --- 1. CONFIG & THEMES ---
+  const THEMES = {
+    EMERALD: { accent: '#10B981', bg: '#064E3B22' },
+    SAPPHIRE: { accent: '#3B82F6', bg: '#1E3A8A22' },
+    CRIMSON: { accent: '#EF4444', bg: '#7F1D1D22' }
+  };
+
   const WORKOUTS = {
     SHRED: { id: 'SHRED', name: "SHRED PROTOCOL", rest: 45, ids: ["A1", "A2", "B1", "D1", "D2"], color: '#10B981' },
     POWER: { id: 'POWER', name: "POWER PROTOCOL", rest: 90, ids: ["A1", "A2", "B1", "B2", "C1", "C2"], color: '#3B82F6' }
@@ -19,20 +25,9 @@ const TitanTracker = () => {
   ];
 
   const EXTRA_POOL = [
-    { id: "E1", name: "Bicep Curls", muscle: "Arms" },
-    { id: "E2", name: "Tricep Pushdown", muscle: "Arms" },
-    { id: "E3", name: "Lateral Raises", muscle: "Shoulders" },
-    { id: "E4", name: "Face Pulls", muscle: "Back" },
-    { id: "E5", name: "Calf Raises", muscle: "Legs" },
-    { id: "E6", name: "Hammer Curls", muscle: "Arms" },
-    { id: "E7", name: "Skull Crushers", muscle: "Arms" },
-    { id: "E8", name: "Front Raises", muscle: "Shoulders" }
+    { id: "E1", name: "Bicep Curls", muscle: "Arms" }, { id: "E2", name: "Tricep Pushdown", muscle: "Arms" },
+    { id: "E3", name: "Lateral Raises", muscle: "Shoulders" }, { id: "E4", name: "Face Pulls", muscle: "Back" }
   ];
-
-  const T = {
-    bg: '#0A0F1E', surface: '#161E31', card: '#232D45', accent: '#10B981',
-    text: '#F8FAFC', subtext: '#94A3B8', border: 'rgba(255,255,255,0.1)', danger: '#EF4444'
-  };
 
   // --- 2. STATE ---
   const [view, setView] = useState('menu'); 
@@ -40,70 +35,56 @@ const TitanTracker = () => {
   const [activeSession, setActiveSession] = useState(null);
   const [sessionData, setSessionData] = useState({}); 
   const [timeLeft, setTimeLeft] = useState(0);
+
+  // Appearance State
+  const [accent, setAccent] = useState('#10B981');
+  const [fontSize, setFontSize] = useState(14);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Bio State
+  const [bio, setBio] = useState({ weight: 80, height: 180, age: 30, sex: 'm' });
 
   // --- 3. PERSISTENCE ---
   useEffect(() => {
-    const saved = localStorage.getItem('titan_v61_data');
+    const saved = localStorage.getItem('titan_v62_master');
     if (saved) {
-      try { setHistory(JSON.parse(saved)); } 
-      catch(e) { setHistory([]); }
+      const d = JSON.parse(saved);
+      setHistory(d.history || []);
+      setAccent(d.accent || '#10B981');
+      setFontSize(d.fontSize || 14);
+      setBio(d.bio || { weight: 80, height: 180, age: 30, sex: 'm' });
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('titan_v61_data', JSON.stringify(history));
+    localStorage.setItem('titan_v62_master', JSON.stringify({ history, accent, fontSize, bio }));
+  }, [history, accent, fontSize, bio]);
+
+  // --- 4. CALCULATIONS ---
+  const bmi = useMemo(() => {
+    const hM = bio.height / 100;
+    return (bio.weight / (hM * hM)).toFixed(1);
+  }, [bio]);
+
+  const bmr = useMemo(() => {
+    if (bio.sex === 'm') return Math.round(10 * bio.weight + 6.25 * bio.height - 5 * bio.age + 5);
+    return Math.round(10 * bio.weight + 6.25 * bio.height - 5 * bio.age - 161);
+  }, [bio]);
+
+  const totalVolume = useMemo(() => {
+    return history.reduce((acc, h) => acc + (h.volume || 0), 0);
   }, [history]);
 
-  // --- 4. ENGINE ---
+  // --- 5. LOGIC ---
   const startWorkout = (id) => {
-    const protocol = WORKOUTS[id];
-    const list = EXERCISES.filter(ex => protocol.ids.includes(ex.id));
-    const initialData = {};
-    list.forEach(ex => {
-      for(let s=0; s<3; s++) {
-        initialData[`${ex.id}-s${s}-r`] = 10;
-        initialData[`${ex.id}-s${s}-w`] = 0;
-      }
-    });
-    setSessionData(initialData);
-    setActiveSession({ ...protocol, list });
-    setView('train');
+    const p = WORKOUTS[id];
+    const list = EXERCISES.filter(ex => p.ids.includes(ex.id));
+    const init = {};
+    list.forEach(ex => { for(let s=0; s<3; s++) { init[`${ex.id}-s${s}-r`] = 10; init[`${ex.id}-s${s}-w`] = 0; } });
+    setSessionData(init); setActiveSession({ ...p, list }); setView('train');
   };
 
-  const addExtra = (ex) => {
-    setActiveSession(prev => ({ ...prev, list: [...prev.list, ex] }));
-    const extraData = {};
-    for(let s=0; s<3; s++) {
-      extraData[`${ex.id}-s${s}-r`] = 10;
-      extraData[`${ex.id}-s${s}-w`] = 0;
-    }
-    setSessionData(prev => ({ ...prev, ...extraData }));
-    setSearchQuery(''); // Clear search for next time
-    setView('train');
-  };
-
-  const removeExercise = (exId) => {
-    setActiveSession(prev => ({
-      ...prev,
-      list: prev.list.filter(item => item.id !== exId)
-    }));
-  };
-
-  const updateVal = (key, delta) => {
-    setSessionData(prev => ({
-      ...prev,
-      [key]: Math.max(0, (parseFloat(prev[key]) || 0) + delta)
-    }));
-  };
-
-  const filteredLibrary = useMemo(() => {
-    const query = searchQuery.toLowerCase();
-    return EXTRA_POOL.filter(ex => 
-      ex.name.toLowerCase().includes(query) || 
-      ex.muscle.toLowerCase().includes(query)
-    );
-  }, [searchQuery]);
+  const updateVal = (key, delta) => setSessionData(p => ({ ...p, [key]: Math.max(0, (parseFloat(p[key]) || 0) + delta) }));
 
   const finishSession = () => {
     const details = activeSession.list.map(ex => {
@@ -116,142 +97,142 @@ const TitanTracker = () => {
       return { name: ex.name, sets };
     }).filter(d => d.sets.length > 0);
 
+    const vol = details.reduce((acc, ex) => acc + ex.sets.reduce((sA, s) => sA + (s.w * s.r), 0), 0);
+
     setHistory([{
-      id: activeSession.id, 
-      date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
-      name: activeSession.name, 
-      color: activeSession.color, 
-      details
+      id: activeSession.id, date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+      name: activeSession.name, color: activeSession.color, details, volume: vol
     }, ...history]);
-    
     setActiveSession(null); setView('log');
   };
 
+  const T = {
+    bg: '#0A0F1E', surface: '#161E31', card: '#232D45', accent: accent,
+    text: '#F8FAFC', subtext: '#94A3B8', border: 'rgba(255,255,255,0.1)'
+  };
+
   return (
-    <div style={{ background: T.bg, minHeight: '100vh', color: T.text, padding: '20px', fontFamily: 'sans-serif', maxWidth: '500px', margin: '0 auto' }}>
+    <div style={{ background: T.bg, minHeight: '100vh', color: T.text, padding: '20px', fontFamily: 'sans-serif', fontSize: `${fontSize}px`, maxWidth: '500px', margin: '0 auto' }}>
       
-      {/* HEADER */}
-      {view !== 'library' && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
-          <h1 style={{ fontSize: '22px', fontWeight: '900', letterSpacing: '-1px' }}>TITAN<span style={{color: T.accent}}>+</span></h1>
-          <div style={{ display: 'flex', background: T.surface, padding: '4px', borderRadius: '12px' }}>
-            <button onClick={() => setView('menu')} style={{ border: 'none', padding: '10px', background: view === 'menu' ? T.card : 'transparent', color: view === 'menu' ? T.accent : T.subtext, borderRadius: '8px' }}><Play size={18}/></button>
-            <button onClick={() => setView('log')} style={{ border: 'none', padding: '10px', background: view === 'log' ? T.card : 'transparent', color: view === 'log' ? T.accent : T.subtext, borderRadius: '8px' }}><History size={18}/></button>
-          </div>
+      {/* NAVBAR */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+        <h1 style={{ fontSize: '1.5em', fontWeight: '900' }}>TITAN<span style={{color: T.accent}}>+</span></h1>
+        <div style={{ display: 'flex', background: T.surface, padding: '4px', borderRadius: '12px', gap: '4px' }}>
+          <button onClick={() => setView('menu')} style={{ border: 'none', padding: '8px', background: view === 'menu' ? T.card : 'transparent', color: view === 'menu' ? T.accent : T.subtext, borderRadius: '8px' }}><Play size={18}/></button>
+          <button onClick={() => setView('metrics')} style={{ border: 'none', padding: '8px', background: view === 'metrics' ? T.card : 'transparent', color: view === 'metrics' ? T.accent : T.subtext, borderRadius: '8px' }}><BarChart2 size={18}/></button>
+          <button onClick={() => setView('biometrics')} style={{ border: 'none', padding: '8px', background: view === 'biometrics' ? T.card : 'transparent', color: view === 'biometrics' ? T.accent : T.subtext, borderRadius: '8px' }}><Calculator size={18}/></button>
+          <button onClick={() => setView('settings')} style={{ border: 'none', padding: '8px', background: view === 'settings' ? T.card : 'transparent', color: view === 'settings' ? T.accent : T.subtext, borderRadius: '8px' }}><Settings size={18}/></button>
         </div>
-      )}
+      </div>
 
       {/* VIEW: MENU */}
       {view === 'menu' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {Object.values(WORKOUTS).map(w => (
-            <button key={w.id} onClick={() => startWorkout(w.id)} style={{ background: T.surface, border: `1px solid ${T.border}`, padding: '25px', borderRadius: '24px', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ color: w.color, fontWeight: '900', fontSize: '18px' }}>{w.name}</div>
-                <div style={{ color: T.subtext, fontSize: '11px', marginTop: '4px' }}>LOG SESSION</div>
-              </div>
+            <button key={w.id} onClick={() => startWorkout(w.id)} style={{ background: T.surface, border: `1px solid ${T.border}`, padding: '25px', borderRadius: '24px', textAlign: 'left', color: '#FFF' }}>
+              <div style={{ color: w.color, fontWeight: '900', fontSize: '1.2em' }}>{w.name}</div>
+              <div style={{ color: T.subtext, fontSize: '0.8em', marginTop: '4px' }}>START PROTOCOL</div>
             </button>
           ))}
         </div>
       )}
 
-      {/* VIEW: TRAIN */}
+      {/* VIEW: METRICS */}
+      {view === 'metrics' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ background: T.surface, padding: '20px', borderRadius: '20px', textAlign: 'center' }}>
+            <div style={{ color: T.subtext, fontSize: '0.7em', fontWeight: '900' }}>TOTAL VOLUME LIFTED</div>
+            <div style={{ fontSize: '2.5em', fontWeight: '900', color: T.accent }}>{totalVolume.toLocaleString()}<span style={{fontSize: '0.4em'}}>KG</span></div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div style={{ background: T.surface, padding: '15px', borderRadius: '15px' }}>
+              <div style={{ fontSize: '0.7em', color: T.subtext }}>SESSIONS</div>
+              <div style={{ fontSize: '1.5em', fontWeight: '900' }}>{history.length}</div>
+            </div>
+            <div style={{ background: T.surface, padding: '15px', borderRadius: '15px' }}>
+              <div style={{ fontSize: '0.7em', color: T.subtext }}>AVG VOLUME</div>
+              <div style={{ fontSize: '1.5em', fontWeight: '900' }}>{history.length ? Math.round(totalVolume/history.length) : 0}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW: BIOMETRICS (MAN/WOMAN DATA) */}
+      {view === 'biometrics' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ background: T.surface, padding: '20px', borderRadius: '20px' }}>
+             <h3 style={{ margin: '0 0 15px 0', fontSize: '1em' }}>Biometrics Lab</h3>
+             <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+               <button onClick={() => setBio({...bio, sex: 'm'})} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: bio.sex === 'm' ? T.accent : T.card, color: bio.sex === 'm' ? '#000' : '#FFF' }}>Male</button>
+               <button onClick={() => setBio({...bio, sex: 'f'})} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: bio.sex === 'f' ? T.accent : T.card, color: bio.sex === 'f' ? '#000' : '#FFF' }}>Female</button>
+             </div>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Weight (kg)</span><input type="number" value={bio.weight} onChange={e => setBio({...bio, weight: e.target.value})} style={{ width: '60px', background: '#000', border: 'none', color: T.accent, textAlign: 'right' }} /></div>
+               <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Height (cm)</span><input type="number" value={bio.height} onChange={e => setBio({...bio, height: e.target.value})} style={{ width: '60px', background: '#000', border: 'none', color: T.accent, textAlign: 'right' }} /></div>
+               <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Age</span><input type="number" value={bio.age} onChange={e => setBio({...bio, age: e.target.value})} style={{ width: '60px', background: '#000', border: 'none', color: T.accent, textAlign: 'right' }} /></div>
+             </div>
+          </div>
+          <div style={{ background: T.accent, color: '#000', padding: '20px', borderRadius: '20px', display: 'flex', justifyContent: 'space-between' }}>
+            <div><div style={{ fontSize: '0.7em', fontWeight: '900' }}>BMI</div><div style={{ fontSize: '1.5em', fontWeight: '900' }}>{bmi}</div></div>
+            <div style={{ textAlign: 'right' }}><div style={{ fontSize: '0.7em', fontWeight: '900' }}>EST. BMR</div><div style={{ fontSize: '1.5em', fontWeight: '900' }}>{bmr} kcal</div></div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW: SETTINGS */}
+      {view === 'settings' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ background: T.surface, padding: '20px', borderRadius: '20px' }}>
+            <div style={{ marginBottom: '15px', fontWeight: '900' }}>Appearance</div>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+              {Object.entries(THEMES).map(([name, colors]) => (
+                <button key={name} onClick={() => setAccent(colors.accent)} style={{ width: '40px', height: '40px', borderRadius: '50%', border: accent === colors.accent ? '3px solid #FFF' : 'none', background: colors.accent }} />
+              ))}
+            </div>
+            <div style={{ fontWeight: '900', marginBottom: '10px' }}>Font Size: {fontSize}px</div>
+            <input type="range" min="12" max="22" value={fontSize} onChange={(e) => setFontSize(parseInt(e.target.value))} style={{ width: '100%', accentColor: T.accent }} />
+          </div>
+          <button onClick={() => setView('log')} style={{ background: T.card, color: '#FFF', border: 'none', padding: '15px', borderRadius: '15px' }}>View History</button>
+        </div>
+      )}
+
+      {/* VIEW: TRAIN (Shared Precision Engine) */}
       {view === 'train' && activeSession && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', paddingBottom: '160px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', paddingBottom: '140px' }}>
           {activeSession.list.map(ex => (
             <div key={ex.id} style={{ background: T.surface, padding: '15px', borderRadius: '20px', border: `1px solid ${T.border}` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <span style={{ fontWeight: '900', fontSize: '16px', color: '#FFF' }}>{ex.name}</span>
-                <button onClick={() => removeExercise(ex.id)} style={{ background: 'none', border: 'none', color: T.danger, padding: '5px' }}><X size={18}/></button>
-              </div>
+              <div style={{ fontWeight: '900', fontSize: '1.1em', marginBottom: '12px' }}>{ex.name}</div>
               {[...Array(3)].map((_, i) => (
                 <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
                   <button onClick={() => setTimeLeft(activeSession.rest)} style={{ width: '45px', height: '45px', background: T.card, borderRadius: '10px', border: 'none', color: T.accent, fontWeight: '900' }}>{i + 1}</button>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#000', borderRadius: '10px', border: `1px solid ${T.border}` }}>
-                    <button onClick={() => updateVal(`${ex.id}-s${i}-w`, -1)} style={{ padding: '10px', background: 'none', border: 'none', color: T.subtext }}><Minus size={14}/></button>
-                    <div style={{ flex: 1, textAlign: 'center', fontWeight: '900', fontSize: '14px' }}>{sessionData[`${ex.id}-s${i}-w`] || 0}kg</div>
-                    <button onClick={() => updateVal(`${ex.id}-s${i}-w`, 1)} style={{ padding: '10px', background: 'none', border: 'none', color: T.subtext }}><Plus size={14}/></button>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#000', borderRadius: '10px' }}>
+                    <button onClick={() => updateVal(`${ex.id}-s${i}-w`, -1)} style={{ padding: '10px', color: T.subtext, background: 'none', border: 'none' }}><Minus size={14}/></button>
+                    <div style={{ flex: 1, textAlign: 'center' }}>{sessionData[`${ex.id}-s${i}-w`] || 0}kg</div>
+                    <button onClick={() => updateVal(`${ex.id}-s${i}-w`, 1)} style={{ padding: '10px', color: T.subtext, background: 'none', border: 'none' }}><Plus size={14}/></button>
                   </div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#000', borderRadius: '10px', border: `1px solid ${T.border}` }}>
-                    <button onClick={() => updateVal(`${ex.id}-s${i}-r`, -1)} style={{ padding: '10px', background: 'none', border: 'none', color: T.subtext }}><Minus size={14}/></button>
-                    <div style={{ flex: 1, textAlign: 'center', fontWeight: '900', fontSize: '14px', color: T.accent }}>{sessionData[`${ex.id}-s${i}-r`] || 0}</div>
-                    <button onClick={() => updateVal(`${ex.id}-s${i}-r`, 1)} style={{ padding: '10px', background: 'none', border: 'none', color: T.subtext }}><Plus size={14}/></button>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: '#000', borderRadius: '10px' }}>
+                    <button onClick={() => updateVal(`${ex.id}-s${i}-r`, -1)} style={{ padding: '10px', color: T.subtext, background: 'none', border: 'none' }}><Minus size={14}/></button>
+                    <div style={{ flex: 1, textAlign: 'center', color: T.accent }}>{sessionData[`${ex.id}-s${i}-r`] || 0}</div>
+                    <button onClick={() => updateVal(`${ex.id}-s${i}-r`, 1)} style={{ padding: '10px', color: T.subtext, background: 'none', border: 'none' }}><Plus size={14}/></button>
                   </div>
                 </div>
               ))}
             </div>
           ))}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-             <button onClick={() => setView('library')} style={{ background: T.surface, border: `1px solid ${T.accent}44`, padding: '15px', borderRadius: '15px', color: T.accent, fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-               <Plus size={18}/> ADD EXTRA
-             </button>
-             <button onClick={finishSession} style={{ background: T.accent, border: 'none', padding: '15px', borderRadius: '15px', color: '#000', fontWeight: '950' }}>FINISH LOG</button>
-          </div>
+          <button onClick={finishSession} style={{ position: 'fixed', bottom: '25px', left: '20px', right: '20px', background: T.accent, padding: '20px', borderRadius: '18px', fontWeight: '950', color: '#000', border: 'none', maxWidth: '460px', margin: '0 auto' }}>FINISH & LOG</button>
         </div>
       )}
 
-      {/* VIEW: LIBRARY (SEARCHABLE) */}
-      {view === 'library' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <button onClick={() => setView('train')} style={{ background: T.surface, border: 'none', padding: '10px', borderRadius: '12px', color: T.text }}><ChevronLeft size={24}/></button>
-            <h2 style={{ fontSize: '20px', fontWeight: '900' }}>Library</h2>
-          </div>
-
-          <div style={{ position: 'relative' }}>
-            <Search size={18} style={{ position: 'absolute', left: '15px', top: '15px', color: T.subtext }} />
-            <input 
-              type="text" 
-              placeholder="Search exercise or muscle..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ width: '100%', background: T.surface, border: `1px solid ${T.border}`, padding: '15px 15px 15px 45px', borderRadius: '15px', color: '#FFF', fontSize: '14px', outline: 'none' }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {filteredLibrary.map(ex => {
-              const isAdded = activeSession?.list.find(al => al.id === ex.id);
-              return (
-                <button key={ex.id} onClick={() => !isAdded && addExtra(ex)} style={{ background: T.surface, border: `1px solid ${isAdded ? T.accent + '44' : T.border}`, padding: '18px', borderRadius: '18px', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: isAdded ? 0.4 : 1 }}>
-                  <div>
-                    <div style={{ fontWeight: '900', color: isAdded ? T.accent : '#FFF' }}>{ex.name}</div>
-                    <div style={{ fontSize: '10px', color: T.subtext, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ex.muscle}</div>
-                  </div>
-                  {isAdded ? <CheckCircle2 size={20} color={T.accent}/> : <Plus size={20} color={T.subtext}/>}
-                </button>
-              );
-            })}
-            {filteredLibrary.length === 0 && <div style={{ textAlign: 'center', color: T.subtext, marginTop: '20px' }}>No matches found.</div>}
-          </div>
-        </div>
-      )}
-
-      {/* VIEW: LOG */}
-      {view === 'log' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {history.map((h, i) => (
-            <div key={i} style={{ background: T.surface, padding: '15px', borderRadius: '15px', borderLeft: `4px solid ${h.color}` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: '900', fontSize: '14px' }}>{h.date}</span>
-                <span style={{ color: h.color, fontWeight: '900', fontSize: '11px' }}>{h.name}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* TIMER */}
+      {/* TIMER HUD */}
       {timeLeft > 0 && (
-        <div onClick={() => setTimeLeft(0)} style={{ position: 'fixed', bottom: '20px', left: '20px', right: '20px', background: T.accent, color: '#000', padding: '20px', borderRadius: '25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 1000 }}>
-          <span style={{ fontWeight: '950', fontSize: '32px' }}>{timeLeft}s</span>
-          <div style={{ fontWeight: '900', textAlign: 'right' }}>RESTING</div>
+        <div onClick={() => setTimeLeft(0)} style={{ position: 'fixed', bottom: '20px', left: '20px', right: '20px', background: T.accent, color: '#000', padding: '20px', borderRadius: '25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 1000, maxWidth: '460px', margin: '0 auto' }}>
+          <span style={{ fontWeight: '950', fontSize: '2em' }}>{timeLeft}s</span>
+          <div style={{ fontWeight: '900' }}>RESTING</div>
         </div>
       )}
 
       {useEffect(() => {
-        let t;
-        if (timeLeft > 0) t = setInterval(() => setTimeLeft(p => p - 1), 1000);
+        let t; if (timeLeft > 0) t = setInterval(() => setTimeLeft(p => p - 1), 1000);
         return () => clearInterval(t);
       }, [timeLeft])}
 
