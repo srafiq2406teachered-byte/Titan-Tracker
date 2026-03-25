@@ -1,4 +1,10 @@
-<!DOCTYPE html>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('Titan SW Registered'))
+      .catch(err => console.log('Titan SW Failed', err));
+  });
+}<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
