@@ -1,254 +1,228 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Play, BarChart2, Settings, ChevronLeft, Plus, 
-  Flame, Timer, Trash2, Activity, TrendingUp, BarChart
+  Search, Play, BarChart2, Settings, ChevronLeft, Plus, 
+  Trash2, Dumbbell, Activity, RotateCcw, Filter, TrendingUp
 } from 'lucide-react';
 
 const TitanTracker = () => {
-  // --- 1. DATA POOLS ---
-  const WORKOUTS = {
-    ALPHA: { id: 'ALPHA', name: "ALPHA: STRENGTH", rest: 90, ids: ["A1", "B1", "D1"], color: '#3B82F6', desc: "Compound Power" },
-    OMEGA: { id: 'OMEGA', name: "OMEGA: BURN", rest: 45, ids: ["A2", "E1", "F1"], color: '#F59E0B', desc: "Metabolic / Volume" }
-  };
-
-  const EXERCISES = [
-    { id: "A1", name: "Leg Press", muscle: "Legs" }, { id: "B1", name: "Chest Press", muscle: "Chest" },
-    { id: "D1", name: "Deadlift", muscle: "Back" }, { id: "A2", name: "Lat Pulldown", muscle: "Back" },
-    { id: "E1", name: "Bicep Curls", muscle: "Arms" }, { id: "F1", name: "Goblet Squat", muscle: "Legs" }
+  // --- 1. THE EXERCISE MASTER DATABASE ---
+  const EXERCISE_MASTER = [
+    { id: "1", name: "Bench Press", muscle: "Chest", equip: "Barbell", tier: 1 },
+    { id: "2", name: "Dumbbell Flys", muscle: "Chest", equip: "Dumbbell", tier: 3 },
+    { id: "3", name: "Push Ups", muscle: "Chest", equip: "Bodyweight", tier: 2 },
+    { id: "4", name: "Deadlift", muscle: "Back", equip: "Barbell", tier: 1 },
+    { id: "5", name: "Pull Ups", muscle: "Back", equip: "Bodyweight", tier: 1 },
+    { id: "6", name: "Seated Row", muscle: "Back", equip: "Machine", tier: 2 },
+    { id: "7", name: "Squats", muscle: "Legs", equip: "Barbell", tier: 1 },
+    { id: "8", name: "Leg Press", muscle: "Legs", equip: "Machine", tier: 2 },
+    { id: "9", name: "Lunges", muscle: "Legs", equip: "Dumbbell", tier: 2 },
+    { id: "10", name: "Shoulder Press", muscle: "Shoulders", equip: "Dumbbell", tier: 1 },
+    { id: "11", name: "Lateral Raise", muscle: "Shoulders", equip: "Dumbbell", tier: 3 },
+    { id: "12", name: "Bicep Curls", muscle: "Arms", equip: "Dumbbell", tier: 3 },
+    { id: "13", name: "Dips", muscle: "Arms", equip: "Bodyweight", tier: 2 }
   ];
-
-  const EXTRA_POOL = [
-    { id: "X1", name: "Incline DB Press", muscle: "Chest" }, { id: "X2", name: "Pec Deck Fly", muscle: "Chest" },
-    { id: "X3", name: "Lateral Raise", muscle: "Shoulders" }, { id: "X4", name: "Military Press", muscle: "Shoulders" },
-    { id: "X7", name: "Seated Cable Row", muscle: "Back" }, { id: "X8", name: "Pull Ups", muscle: "Back" },
-    { id: "X9", name: "Hammer Curls", muscle: "Arms" }, { id: "X10", name: "Tricep Pushdown", muscle: "Arms" },
-    { id: "X13", name: "Leg Extension", muscle: "Legs" }, { id: "X14", name: "Leg Curl", muscle: "Legs" },
-    { id: "X19", name: "Plank", muscle: "Core" }, { id: "X23", name: "Treadmill", muscle: "Cardio" }
-  ];
-
-  const ALL_EX = [...EXERCISES, ...EXTRA_POOL];
 
   // --- 2. STATE ---
   const [view, setView] = useState('menu'); 
   const [history, setHistory] = useState([]);
+  const [weightLogs, setWeightLogs] = useState([]);
   const [activeSession, setActiveSession] = useState(null);
   const [sessionData, setSessionData] = useState({}); 
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [accent, setAccent] = useState('#3B82F6');
-  const [bio, setBio] = useState({ weight: 80, height: 180, age: 30 });
+  const [search, setSearch] = useState('');
+  const [filterEquip, setFilterEquip] = useState('All');
+  const [bio, setBio] = useState({ weight: 80, height: 180 });
 
-  // --- 3. PERSISTENCE FIX (CRITICAL) ---
-  // Load ONLY ONCE on mount
+  // --- 3. PERSISTENCE ENGINE ---
   useEffect(() => {
-    const saved = localStorage.getItem('titan_master_v97');
+    const saved = localStorage.getItem('titan_v10_data');
     if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed.history) setHistory(parsed.history);
-      if (parsed.bio) setBio(parsed.bio);
+      const p = JSON.parse(saved);
+      if (p.history) setHistory(p.history);
+      if (p.weightLogs) setWeightLogs(p.weightLogs);
+      if (p.bio) setBio(p.bio);
     }
   }, []);
 
-  // Save whenever history or bio changes, but ONLY if we have data to save
   useEffect(() => {
-    if (history.length > 0 || bio.weight !== 80) {
-      localStorage.setItem('titan_master_v97', JSON.stringify({ history, bio }));
-    }
-  }, [history, bio]);
+    localStorage.setItem('titan_v10_data', JSON.stringify({ history, weightLogs, bio }));
+  }, [history, weightLogs, bio]);
 
-  // --- 4. ENGINES ---
-  const bmiData = useMemo(() => {
-    const hM = bio.height / 100;
-    const val = (bio.weight / (hM * hM)).toFixed(1);
-    const cat = val < 18.5 ? "Under" : val < 25 ? "Normal" : val < 30 ? "Over" : "Obese";
-    return { val, cat };
-  }, [bio]);
-
-  const muscleVolume = useMemo(() => {
-    const stats = {};
+  // --- 4. ANALYTICS & SUGGESTION ENGINES ---
+  const muscleHeat = useMemo(() => {
+    const stats = { Chest: 0, Back: 0, Legs: 0, Shoulders: 0, Arms: 0 };
     history.forEach(s => s.details.forEach(ex => {
-      const found = ALL_EX.find(e => e.name === ex.name);
-      const m = found ? found.muscle : "Other";
-      stats[m] = (stats[m] || 0) + ex.sets.length;
+      const m = EXERCISE_MASTER.find(e => e.name === ex.name)?.muscle;
+      if (m) stats[m] += ex.sets.length;
     }));
-    return Object.entries(stats).sort((a, b) => b[1] - a[1]);
+    return stats;
   }, [history]);
 
+  const getSuggestions = (currentEx) => {
+    const alternatives = EXERCISE_MASTER.filter(e => 
+      e.muscle === currentEx.muscle && e.id !== currentEx.id
+    );
+    return {
+      better: alternatives.find(a => a.tier < currentEx.tier) || null,
+      swap: alternatives.find(a => a.equip !== currentEx.equip) || null
+    };
+  };
+
+  const filteredLibrary = EXERCISE_MASTER.filter(e => 
+    e.name.toLowerCase().includes(search.toLowerCase()) && 
+    (filterEquip === 'All' || e.equip === filterEquip)
+  );
+
   // --- 5. LOGIC ---
-  const startWorkout = (id) => {
-    const p = WORKOUTS[id] || { name: "Manual", rest: 60, ids: [] };
-    const list = EXERCISES.filter(ex => p.ids.includes(ex.id)).map(e => ({
-      ...e, instanceId: `${e.id}-${Date.now()}`
-    }));
-    setSessionData({});
-    setActiveSession({ ...p, list });
-    setAccent(p.color);
-    setView('train');
-  };
-
-  const updateSet = (id, idx, field, val) => {
-    setSessionData(prev => {
-      const copy = { ...prev };
-      if (!copy[id]) copy[id] = [{ w: '', r: '', rpe: '8' }];
-      copy[id][idx] = { ...copy[id][idx], [field]: val };
-      return copy;
-    });
-  };
-
   const finishSession = () => {
     const details = activeSession.list.map(ex => ({
       name: ex.name,
-      sets: (sessionData[ex.instanceId] || []).filter(s => s.w !== '' || s.r !== '')
+      sets: (sessionData[ex.instanceId] || []).filter(s => s.w && s.r)
     })).filter(d => d.sets.length > 0);
-    
-    const newEntry = { 
-      date: new Date().toLocaleDateString('en-GB'), 
-      name: activeSession.name, 
-      calories: (Math.random() * 200 + 150).toFixed(0),
-      userWeight: bio.weight,
-      details 
-    };
 
-    const newHistory = [newEntry, ...history];
-    setHistory(newHistory);
-    // Explicit Save to prevent refresh loss
-    localStorage.setItem('titan_master_v97', JSON.stringify({ history: newHistory, bio }));
-    
-    setActiveSession(null); 
+    setHistory([{ date: new Date().toLocaleDateString(), name: activeSession.name, details }, ...history]);
+    setActiveSession(null);
     setView('metrics');
   };
 
-  const T = { bg: '#050810', surface: '#111827', card: '#1F2937', accent, text: '#F9FAFB', subtext: '#9CA3AF' };
+  const T = { bg: '#020617', surf: '#0f172a', card: '#1e293b', acc: '#38bdf8', text: '#f8fafc', mute: '#94a3b8' };
 
   return (
-    <div style={{ background: T.bg, minHeight: '100vh', color: T.text, padding: '12px', fontFamily: 'sans-serif', maxWidth: '480px', margin: '0 auto', boxSizing: 'border-box' }}>
+    <div style={{ background: T.bg, minHeight: '100vh', color: T.text, padding: '15px', fontFamily: 'system-ui', maxWidth: '450px', margin: '0 auto' }}>
       
-      <style>{`
-        input, select { box-sizing: border-box !important; min-width: 0 !important; outline: none; border: none; }
-        ::-webkit-scrollbar { display: none; }
-      `}</style>
-
-      {/* HEADER */}
-      {view !== 'library' && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h1 style={{ fontWeight: '950', fontSize: '1.2em' }}>TITAN<span style={{color: T.accent}}>+</span></h1>
-          <nav style={{ display: 'flex', background: T.surface, padding: '4px', borderRadius: '12px' }}>
-            {['menu', 'metrics', 'settings'].map(v => (
-              <button key={v} onClick={() => setView(v)} style={{ border: 'none', padding: '10px', background: view === v ? T.card : 'transparent', color: view === v ? T.accent : T.subtext, borderRadius: '8px' }}>
-                {v === 'menu' && <Play size={18} fill={view === v ? T.accent : 'none'}/>}
-                {v === 'metrics' && <BarChart2 size={18}/>}
-                {v === 'settings' && <Settings size={18}/>}
-              </button>
-            ))}
-          </nav>
+      {/* PERSISTENT HEADER */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h1 style={{ fontWeight: '900', letterSpacing: '-1px' }}>TITAN<span style={{color: T.acc}}>V10</span></h1>
+        <div style={{ display: 'flex', gap: '8px', background: T.surf, padding: '5px', borderRadius: '12px' }}>
+          <button onClick={() => setView('menu')} style={{ border: 'none', background: view === 'menu' ? T.card : 'transparent', color: T.acc, padding: '8px', borderRadius: '8px' }}><Play size={18}/></button>
+          <button onClick={() => setView('metrics')} style={{ border: 'none', background: view === 'metrics' ? T.card : 'transparent', color: T.acc, padding: '8px', borderRadius: '8px' }}><Activity size={18}/></button>
+          <button onClick={() => setView('settings')} style={{ border: 'none', background: view === 'settings' ? T.card : 'transparent', color: T.acc, padding: '8px', borderRadius: '8px' }}><Settings size={18}/></button>
         </div>
-      )}
+      </div>
 
-      {/* TRAINING VIEW */}
+      {/* VIEW: WORKOUT LOGGING */}
       {view === 'train' && activeSession && (
-        <div style={{ paddingBottom: '140px' }}>
-          {activeSession.list.map(ex => (
-            <div key={ex.instanceId} style={{ background: T.surface, padding: '14px', borderRadius: '24px', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <span style={{ fontWeight: '900', color: T.accent, fontSize: '0.8em' }}>{ex.name.toUpperCase()}</span>
-                <button onClick={() => setActiveSession(p => ({...p, list: p.list.filter(e => e.instanceId !== ex.instanceId)}))} style={{ background: 'none', border: 'none', color: '#EF4444' }}><Trash2 size={14}/></button>
-              </div>
-              
-              {(sessionData[ex.instanceId] || [{w:'', r:'', rpe:'8'}]).map((set, i) => (
-                <div key={i} style={{ display: 'flex', gap: '6px', marginBottom: '8px', alignItems: 'center' }}>
-                  <button onClick={() => { setTimeLeft(activeSession.rest); }} style={{ width: '40px', flexShrink: 0, height: '40px', background: T.card, border: 'none', borderRadius: '10px', color: T.accent, fontWeight: '900' }}>{i+1}</button>
-                  <input type="number" placeholder="KG" value={set.w} onChange={e => updateSet(ex.instanceId, i, 'w', e.target.value)} style={{ flex: 2, background: T.bg, color: '#FFF', textAlign: 'center', height: '40px', borderRadius: '10px', fontWeight: '900' }} />
-                  <input type="number" placeholder="REPS" value={set.r} onChange={e => updateSet(ex.instanceId, i, 'r', e.target.value)} style={{ flex: 2, background: T.bg, color: '#FFF', textAlign: 'center', height: '40px', borderRadius: '10px', fontWeight: '900' }} />
-                  <select value={set.rpe} onChange={e => updateSet(ex.instanceId, i, 'rpe', e.target.value)} style={{ flex: 1.5, background: T.card, color: T.accent, height: '40px', borderRadius: '10px', fontWeight: '900', textAlign: 'center', fontSize: '0.7em' }}>
-                    {[6,7,8,9,10].map(n => <option key={n} value={n}>@{n}</option>)}
-                  </select>
+        <div style={{ paddingBottom: '100px' }}>
+          {activeSession.list.map(ex => {
+            const suggestions = getSuggestions(ex);
+            return (
+              <div key={ex.instanceId} style={{ background: T.surf, padding: '15px', borderRadius: '20px', marginBottom: '15px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: '800', fontSize: '0.9em', color: T.acc }}>{ex.name}</span>
+                  <button onClick={() => setActiveSession({...activeSession, list: activeSession.list.filter(e => e.instanceId !== ex.instanceId)})} style={{ color: '#ef4444', background: 'none', border: 'none' }}><Trash2 size={16}/></button>
                 </div>
-              ))}
-              <button onClick={() => {
-                const cur = sessionData[ex.instanceId] || [];
-                const last = cur[cur.length-1] || {w:'', r:'', rpe:'8'};
-                setSessionData({...sessionData, [ex.instanceId]: [...cur, {...last}]});
-              }} style={{ width: '100%', padding: '8px', background: 'none', border: `1px dashed ${T.card}`, borderRadius: '10px', color: T.subtext, fontSize: '0.7em', fontWeight: 'bold' }}>+ ADD SET</button>
-            </div>
-          ))}
-          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '20px', background: `linear-gradient(transparent, ${T.bg} 40%)`, display: 'flex', gap: '10px' }}>
-            <button onClick={() => setView('library')} style={{ flex: 1, padding: '18px', borderRadius: '18px', background: T.surface, color: '#FFF', border: 'none', fontWeight: 'bold' }}>+ EXTRA</button>
-            <button onClick={finishSession} style={{ flex: 2, padding: '18px', borderRadius: '18px', background: T.accent, color: '#000', fontWeight: '950', border: 'none' }}>FINISH</button>
+
+                {/* LOGGING ROWS */}
+                {(sessionData[ex.instanceId] || [{w:'', r:''}]).map((s, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                    <div style={{ width: '30px', height: '35px', background: T.card, borderRadius: '8px', textAlign: 'center', lineHeight: '35px', fontWeight: 'bold' }}>{i+1}</div>
+                    <input placeholder="KG" value={s.w} onChange={e => {
+                      const sets = [...(sessionData[ex.instanceId] || [])];
+                      sets[i].w = e.target.value;
+                      setSessionData({...sessionData, [ex.instanceId]: sets});
+                    }} style={{ flex: 1, background: T.bg, border: 'none', borderRadius: '8px', color: '#fff', textAlign: 'center' }} />
+                    <input placeholder="REPS" value={s.r} onChange={e => {
+                      const sets = [...(sessionData[ex.instanceId] || [])];
+                      sets[i].r = e.target.value;
+                      setSessionData({...sessionData, [ex.instanceId]: sets});
+                    }} style={{ flex: 1, background: T.bg, border: 'none', borderRadius: '8px', color: '#fff', textAlign: 'center' }} />
+                  </div>
+                ))}
+                
+                <button onClick={() => {
+                  const sets = sessionData[ex.instanceId] || [];
+                  setSessionData({...sessionData, [ex.instanceId]: [...sets, {w: sets[sets.length-1]?.w || '', r: ''}]});
+                }} style={{ width: '100%', padding: '8px', marginTop: '10px', border: `1px dashed ${T.card}`, background: 'none', color: T.mute, borderRadius: '8px', fontSize: '0.8em' }}>+ ADD SET</button>
+
+                {/* SUGGESTION ENGINE UI */}
+                <div style={{ marginTop: '15px', borderTop: `1px solid ${T.card}`, paddingTop: '10px', fontSize: '0.7em' }}>
+                  <span style={{ color: T.mute }}>ALTERNATIVES:</span>
+                  <div style={{ display: 'flex', gap: '5px', marginTop: '5px' }}>
+                    {suggestions.better && <div style={{ background: '#065f46', padding: '4px 8px', borderRadius: '5px' }}>Stronger: {suggestions.better.name}</div>}
+                    {suggestions.swap && <div style={{ background: '#374151', padding: '4px 8px', borderRadius: '5px' }}>{suggestions.swap.equip}: {suggestions.swap.name}</div>}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          <div style={{ position: 'fixed', bottom: 20, left: 15, right: 15, display: 'flex', gap: '10px' }}>
+            <button onClick={() => setView('library')} style={{ flex: 1, padding: '15px', borderRadius: '15px', background: T.surf, color: '#fff', fontWeight: 'bold', border: 'none' }}>+ ADD EXERCISE</button>
+            <button onClick={finishSession} style={{ flex: 1, padding: '15px', borderRadius: '15px', background: T.acc, color: '#000', fontWeight: 'bold', border: 'none' }}>FINISH WORKOUT</button>
           </div>
         </div>
       )}
 
-      {/* METRICS VIEW */}
-      {view === 'metrics' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ background: T.surface, padding: '20px', borderRadius: '28px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px' }}>
-              <BarChart size={16} color={T.accent}/><span style={{ fontSize: '0.7em', fontWeight: '950', letterSpacing: '1px', opacity: 0.6 }}>VOLUME (SETS)</span>
-            </div>
-            {muscleVolume.map(([muscle, count]) => (
-              <div key={muscle} style={{ marginBottom: '10px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7em', fontWeight: 'bold', marginBottom: '4px' }}><span>{muscle.toUpperCase()}</span><span>{count}</span></div>
-                <div style={{ width: '100%', height: '6px', background: T.bg, borderRadius: '10px', overflow: 'hidden' }}>
-                  <div style={{ width: `${(count / (Math.max(...muscleVolume.map(m => m[1])) || 1)) * 100}%`, height: '100%', background: T.accent }} />
-                </div>
-              </div>
+      {/* VIEW: SEARCHABLE LIBRARY */}
+      {view === 'library' && (
+        <div>
+          <button onClick={() => setView(activeSession ? 'train' : 'menu')} style={{ color: T.mute, background: 'none', border: 'none', marginBottom: '10px' }}><ChevronLeft/></button>
+          <div style={{ position: 'relative', marginBottom: '15px' }}>
+            <Search style={{ position: 'absolute', left: '12px', top: '12px', color: T.mute }} size={18}/>
+            <input placeholder="Search exercises..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: '100%', padding: '12px 12px 12px 40px', borderRadius: '15px', background: T.surf, border: 'none', color: '#fff', boxSizing: 'border-box' }} />
+          </div>
+          <div style={{ display: 'flex', gap: '5px', overflowX: 'auto', paddingBottom: '10px' }}>
+            {['All', 'Barbell', 'Dumbbell', 'Machine', 'Bodyweight'].map(e => (
+              <button key={e} onClick={() => setFilterEquip(e)} style={{ padding: '6px 12px', borderRadius: '20px', background: filterEquip === e ? T.acc : T.surf, color: filterEquip === e ? '#000' : '#fff', border: 'none', fontSize: '0.7em', flexShrink: 0 }}>{e}</button>
             ))}
           </div>
-          <div style={{ background: T.surface, padding: '20px', borderRadius: '24px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.5em', fontWeight: '950' }}>{history.length}</div>
-            <div style={{ fontSize: '0.6em', color: T.subtext, fontWeight: 'bold' }}>SESSIONS SAVED</div>
-          </div>
-        </div>
-      )}
-
-      {/* MENU VIEW */}
-      {view === 'menu' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {Object.values(WORKOUTS).map(w => (
-            <button key={w.id} onClick={() => startWorkout(w.id)} style={{ background: T.surface, padding: '28px', borderRadius: '32px', border: 'none', textAlign: 'left' }}>
-              <div style={{ color: w.color, fontWeight: '950', fontSize: '1.2em' }}>{w.name}</div>
-              <div style={{ color: T.subtext, fontSize: '0.7em', marginTop: '6px' }}>{w.desc}</div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* SETTINGS */}
-      {view === 'settings' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div style={{ background: T.accent, color: '#000', padding: '24px', borderRadius: '28px', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.65em', fontWeight: '900' }}>BMI SCORE</div>
-            <div style={{ fontSize: '3.5em', fontWeight: '950' }}>{bmiData.val}</div>
-            <div style={{ fontSize: '0.8em', fontWeight: '900' }}>{bmiData.cat.toUpperCase()}</div>
-          </div>
-          {['weight', 'height', 'age'].map(f => (
-            <div key={f}>
-              <label style={{fontSize: '0.65em', fontWeight: '950', color: T.subtext, textTransform: 'uppercase'}}>{f}</label>
-              <input type="number" value={bio[f]} onChange={e => setBio({...bio, [f]: e.target.value})} style={{ width: '100%', padding: '16px', background: T.surface, border: 'none', color: '#FFF', borderRadius: '18px', marginTop: '6px' }} />
+          {filteredLibrary.map(ex => (
+            <div key={ex.id} onClick={() => {
+              const instanceId = `${ex.id}-${Date.now()}`;
+              if (!activeSession) setActiveSession({ name: 'Custom Session', list: [{...ex, instanceId}] });
+              else setActiveSession({...activeSession, list: [...activeSession.list, {...ex, instanceId}]});
+              setView('train');
+            }} style={{ background: T.surf, padding: '15px', borderRadius: '15px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
+              <span>{ex.name}</span>
+              <span style={{ fontSize: '0.7em', color: T.acc }}>{ex.muscle}</span>
             </div>
           ))}
-          <button onClick={() => { if(window.confirm('Wipe data?')) { localStorage.clear(); window.location.reload(); } }} style={{ padding: '15px', color: '#EF4444', background: 'none', border: 'none', fontSize: '0.7em', fontWeight: '900' }}>WIPE ALL DATA</button>
         </div>
       )}
 
-      {/* LIBRARY VIEW */}
-      {view === 'library' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <button onClick={() => setView('train')} style={{ color: '#FFF', border: 'none', background: T.surface, padding: '12px', borderRadius: '15px', width: 'fit-content' }}><ChevronLeft/></button>
-          {EXTRA_POOL.map(ex => (
-            <button key={ex.id} onClick={() => {
-                const instanceId = `${ex.id}-${Date.now()}`;
-                setActiveSession(p => ({...p, list: [...p.list, {...ex, instanceId}]}));
-                setView('train');
-              }} style={{ background: T.surface, padding: '18px', borderRadius: '20px', border: 'none', color: '#FFF', textAlign: 'left', display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{fontWeight: '900', fontSize: '0.9em'}}>{ex.name}</span>
-              <span style={{color: T.accent, fontSize: '0.65em', fontWeight: '950'}}>{ex.muscle.toUpperCase()}</span>
-            </button>
-          ))}
+      {/* VIEW: ANALYTICS & BODY HEATMAP */}
+      {view === 'metrics' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ background: T.surf, padding: '20px', borderRadius: '25px', display: 'flex', justifyContent: 'center' }}>
+            {/* ANATOMICAL HEATMAP (CSS) */}
+            <div style={{ position: 'relative', width: '120px', height: '200px', background: '#0f172a', borderRadius: '10px' }}>
+              {/* Shoulders */}
+              <div style={{ position: 'absolute', top: '35px', left: '10px', width: '100px', height: '15px', borderRadius: '10px', background: muscleHeat.Shoulders > 5 ? '#f97316' : '#1e293b' }} />
+              {/* Chest */}
+              <div style={{ position: 'absolute', top: '55px', left: '25px', width: '70px', height: '40px', borderRadius: '5px', background: muscleHeat.Chest > 5 ? '#f97316' : '#1e293b' }} />
+              {/* Back (Center) */}
+              <div style={{ position: 'absolute', top: '55px', left: '55px', width: '10px', height: '50px', background: muscleHeat.Back > 5 ? '#f97316' : '#1e293b' }} />
+              {/* Legs */}
+              <div style={{ position: 'absolute', top: '105px', left: '30px', width: '25px', height: '80px', borderRadius: '5px', background: muscleHeat.Legs > 5 ? '#f97316' : '#1e293b' }} />
+              <div style={{ position: 'absolute', top: '105px', left: '65px', width: '25px', height: '80px', borderRadius: '5px', background: muscleHeat.Legs > 5 ? '#f97316' : '#1e293b' }} />
+              <p style={{ position: 'absolute', bottom: -20, fontSize: '0.6em', width: '100%', textAlign: 'center', color: T.mute }}>BODY HEATMAP</p>
+            </div>
+          </div>
+          
+          <div style={{ background: T.surf, padding: '20px', borderRadius: '25px' }}>
+             <h3 style={{ fontSize: '0.8em', marginBottom: '15px' }}>STRENGTH TREND</h3>
+             {history.slice(0,5).map((h, i) => (
+               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75em', marginBottom: '10px' }}>
+                 <span>{h.date}</span>
+                 <span style={{ color: T.acc }}>{h.name}</span>
+               </div>
+             ))}
+          </div>
         </div>
       )}
 
-      {/* TIMER */}
-      {timeLeft > 0 && <div style={{ position: 'fixed', top: '25px', left: '50%', transform: 'translateX(-50%)', background: T.accent, color: '#000', padding: '10px 24px', borderRadius: '40px', fontWeight: '950', zIndex: 3000 }}>REST: {timeLeft}s</div>}
+      {/* VIEW: MENU & QUICKSTART */}
+      {view === 'menu' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div onClick={() => setView('library')} style={{ background: T.acc, color: '#000', padding: '30px', borderRadius: '30px', textAlign: 'center', fontWeight: '900' }}>
+            START NEW WORKOUT
+          </div>
+          <h3 style={{ fontSize: '0.8em', color: T.mute, marginTop: '10px' }}>EQUIPMENT PROGRAMS</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div onClick={() => { setActiveSession({name: 'Home DB', list: EXERCISE_MASTER.filter(e => e.equip === 'Dumbbell').map(e => ({...e, instanceId: Math.random()}))}); setView('train'); }} style={{ background: T.surf, padding: '20px', borderRadius: '20px', fontSize: '0.8em', fontWeight: 'bold' }}>Dumbbell Only</div>
+            <div onClick={() => { setActiveSession({name: 'Bodyweight Pro', list: EXERCISE_MASTER.filter(e => e.equip === 'Bodyweight').map(e => ({...e, instanceId: Math.random()}))}); setView('train'); }} style={{ background: T.surf, padding: '20px', borderRadius: '20px', fontSize: '0.8em', fontWeight: 'bold' }}>Bodyweight</div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
