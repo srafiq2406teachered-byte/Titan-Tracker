@@ -5,19 +5,38 @@ import {
 } from 'lucide-react';
 
 const TitanTracker = () => {
-  // --- 1. CONFIG & DATA (Original 2-Exercise System) ---
+  // --- 1. RESEARCH-BACKED RECOMP PROTOCOLS (2026) ---
   const WORKOUTS = {
-    SHRED: { id: 'SHRED', name: "SHRED PROTOCOL", rest: 45, ids: ["A1", "A2"], color: '#10B981' },
-    POWER: { id: 'POWER', name: "POWER PROTOCOL", rest: 90, ids: ["A1", "B1"], color: '#3B82F6' }
+    ALPHA: { 
+      id: 'ALPHA', 
+      name: "ALPHA: RECOMP STRENGTH", 
+      rest: 90, 
+      ids: ["A1", "B1", "D1"], 
+      color: '#3B82F6',
+      desc: "Focus: Muscle preservation & CNS Load"
+    },
+    OMEGA: { 
+      id: 'OMEGA', 
+      name: "OMEGA: METABOLIC BURN", 
+      rest: 45, 
+      ids: ["A2", "E1", "F1"], 
+      color: '#F59E0B',
+      desc: "Focus: Fat oxidation & Hypertrophy"
+    }
   };
+
   const EXERCISES = [
     { id: "A1", name: "Leg Press", muscle: "Legs", type: "reps" }, 
+    { id: "B1", name: "Chest Press", muscle: "Chest", type: "reps" },
+    { id: "D1", name: "Deadlift", muscle: "Posterior", type: "reps" },
     { id: "A2", name: "Lat Pulldown", muscle: "Back", type: "reps" },
-    { id: "B1", name: "Chest Press", muscle: "Chest", type: "reps" }
+    { id: "E1", name: "Bicep Curls", muscle: "Arms", type: "reps" },
+    { id: "F1", name: "Goblet Squat", muscle: "Full Body", type: "reps" }
   ];
+
   const EXTRA_POOL = [
     { id: "C1", name: "Treadmill", muscle: "Cardio", type: "time" },
-    { id: "E1", name: "Bicep Curls", muscle: "Arms", type: "reps" }
+    { id: "E5", name: "Calf Raises", muscle: "Legs", type: "reps" }
   ];
 
   // --- 2. STATE ---
@@ -27,12 +46,12 @@ const TitanTracker = () => {
   const [sessionData, setSessionData] = useState({}); 
   const [timeLeft, setTimeLeft] = useState(0);
   const [isTimerActive, setIsTimerActive] = useState(false);
-  const [accent, setAccent] = useState('#10B981');
+  const [accent, setAccent] = useState('#3B82F6');
   const [bio, setBio] = useState({ weight: 80, height: 180, age: 30 });
 
   // --- 3. PERSISTENCE ---
   useEffect(() => {
-    const saved = localStorage.getItem('titan_v75_master');
+    const saved = localStorage.getItem('titan_v85_recomp');
     if (saved) {
       const d = JSON.parse(saved);
       if (d.history) setHistory(d.history);
@@ -42,10 +61,10 @@ const TitanTracker = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('titan_v75_master', JSON.stringify({ history, accent, bio }));
+    localStorage.setItem('titan_v85_recomp', JSON.stringify({ history, accent, bio }));
   }, [history, accent, bio]);
 
-  // --- 4. ENGINE LOGIC (Timer Fix) ---
+  // --- 4. UNIFIED ENGINE LOGIC ---
   useEffect(() => {
     let t;
     if (isTimerActive && timeLeft > 0) {
@@ -62,12 +81,14 @@ const TitanTracker = () => {
       ...e, instanceId: `${e.id}-${Date.now()}`
     }));
     
-    // Initialize 3 empty sets per exercise
     const initData = {};
-    list.forEach(ex => { initData[ex.instanceId] = [{w:'', r:''}, {w:'', r:''}, {w:'', r:''}]; });
+    list.forEach(ex => { 
+      initData[ex.instanceId] = [{w:'', r:''}, {w:'', r:''}, {w:'', r:''}]; 
+    });
     
     setSessionData(initData);
     setActiveSession({ ...p, list });
+    setAccent(p.color);
     setView('train');
   };
 
@@ -114,27 +135,27 @@ const TitanTracker = () => {
         </div>
       )}
 
-      {/* UNIFIED TIMER DISPLAY */}
+      {/* TITAN+ UNIFIED ENGINE (REST TIMER) */}
       {view === 'train' && (
         <div style={{ 
           background: isTimerActive ? T.accent : T.surface, 
           color: isTimerActive ? '#000' : T.text,
           padding: '20px', borderRadius: '24px', marginBottom: '20px',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          transition: 'all 0.3s ease'
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
         }}>
           <div>
-            <div style={{ fontSize: '0.7em', fontWeight: '900', opacity: 0.7 }}>ENGINE STATUS</div>
-            <div style={{ fontSize: '2.5em', fontWeight: '950', fontFamily: 'monospace' }}>
+            <div style={{ fontSize: '0.65em', fontWeight: '900', opacity: 0.8, textTransform: 'uppercase' }}>Metabolic Sync</div>
+            <div style={{ fontSize: '2.8em', fontWeight: '950', fontFamily: 'monospace', letterSpacing: '-2px' }}>
               {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-             <button onClick={() => setIsTimerActive(!isTimerActive)} style={{ background: 'rgba(0,0,0,0.1)', border: 'none', padding: '12px', borderRadius: '15px' }}>
-               {isTimerActive ? <Pause size={20}/> : <Play size={20}/>}
+          <div style={{ display: 'flex', gap: '10px' }}>
+             <button onClick={() => setIsTimerActive(!isTimerActive)} style={{ background: 'rgba(0,0,0,0.1)', border: 'none', padding: '14px', borderRadius: '18px' }}>
+               {isTimerActive ? <Pause size={22}/> : <Play size={22}/>}
              </button>
-             <button onClick={() => {setIsTimerActive(false); setTimeLeft(0);}} style={{ background: 'rgba(0,0,0,0.1)', border: 'none', padding: '12px', borderRadius: '15px' }}>
-               <RotateCcw size={20} />
+             <button onClick={() => {setIsTimerActive(false); setTimeLeft(0);}} style={{ background: 'rgba(0,0,0,0.1)', border: 'none', padding: '14px', borderRadius: '18px' }}>
+               <RotateCcw size={22} />
              </button>
           </div>
         </div>
@@ -144,44 +165,48 @@ const TitanTracker = () => {
       {view === 'train' && activeSession && (
         <div style={{ paddingBottom: '140px' }}>
           {activeSession.list.map(ex => (
-            <div key={ex.instanceId} style={{ background: T.surface, padding: '16px', borderRadius: '20px', marginBottom: '15px' }}>
-              <div style={{ fontWeight: '900', fontSize: '0.85em', marginBottom: '12px', color: T.accent }}>{ex.name.toUpperCase()}</div>
+            <div key={ex.instanceId} style={{ background: T.surface, padding: '18px', borderRadius: '24px', marginBottom: '16px', border: '1px solid rgba(255,255,255,0.03)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <span style={{ fontWeight: '900', fontSize: '0.85em', color: T.accent }}>{ex.name.toUpperCase()}</span>
+                <span style={{ fontSize: '0.65em', color: T.subtext, fontWeight: 'bold' }}>{ex.muscle}</span>
+              </div>
               
               {(sessionData[ex.instanceId] || []).map((set, i) => (
-                <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'center' }}>
                   <button 
                     onClick={() => { setTimeLeft(activeSession.rest); setIsTimerActive(true); }}
-                    style={{ width: '45px', background: T.card, border: 'none', borderRadius: '10px', color: T.accent, fontWeight: '900' }}>
+                    style={{ width: '45px', height: '45px', background: T.card, border: 'none', borderRadius: '12px', color: T.accent, fontWeight: '950', fontSize: '1em' }}>
                     {i+1}
                   </button>
                   <input 
                     type="number" placeholder="KG" value={set.w}
                     onChange={e => updateSet(ex.instanceId, i, 'w', e.target.value)} 
-                    style={{ flex: 1, background: T.bg, border: 'none', color: '#FFF', textAlign: 'center', borderRadius: '10px', fontWeight: 'bold' }} 
+                    style={{ flex: 1, background: T.bg, border: 'none', color: '#FFF', textAlign: 'center', height: '45px', borderRadius: '12px', fontWeight: '900' }} 
                   />
                   <input 
                     type="number" placeholder="REPS" value={set.r}
                     onChange={e => updateSet(ex.instanceId, i, 'r', e.target.value)} 
-                    style={{ flex: 1, background: T.bg, border: 'none', color: '#FFF', textAlign: 'center', borderRadius: '10px', fontWeight: 'bold' }} 
+                    style={{ flex: 1, background: T.bg, border: 'none', color: '#FFF', textAlign: 'center', height: '45px', borderRadius: '12px', fontWeight: '900' }} 
                   />
                 </div>
               ))}
             </div>
           ))}
-          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '20px', background: T.bg, display: 'flex', gap: '10px' }}>
-            <button onClick={() => setView('library')} style={{ flex: 1, padding: '16px', borderRadius: '14px', background: T.surface, color: '#FFF', border: 'none', fontWeight: 'bold' }}>+ ADD</button>
-            <button onClick={finishSession} style={{ flex: 2, padding: '16px', borderRadius: '14px', background: T.accent, color: '#000', fontWeight: '950', border: 'none' }}>FINISH</button>
+          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '20px', background: `linear-gradient(transparent, ${T.bg} 40%)`, display: 'flex', gap: '12px' }}>
+            <button onClick={() => setView('library')} style={{ flex: 1, padding: '18px', borderRadius: '18px', background: T.surface, color: '#FFF', border: 'none', fontWeight: 'bold' }}>+ ADD</button>
+            <button onClick={finishSession} style={{ flex: 2, padding: '18px', borderRadius: '18px', background: T.accent, color: '#000', fontWeight: '950', border: 'none' }}>FINISH SESSION</button>
           </div>
         </div>
       )}
 
       {/* MENU VIEW */}
       {view === 'menu' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ padding: '10px 5px', color: T.subtext, fontSize: '0.7em', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Research Protocols</div>
           {Object.values(WORKOUTS).map(w => (
-            <button key={w.id} onClick={() => startWorkout(w.id)} style={{ background: T.surface, padding: '30px', borderRadius: '24px', border: 'none', textAlign: 'left' }}>
-              <div style={{ color: w.color, fontWeight: '900', fontSize: '1.1em' }}>{w.name}</div>
-              <div style={{ color: T.subtext, fontSize: '0.7em', marginTop: '5px' }}>{w.ids.length} EXERCISES • {w.rest}s REST</div>
+            <button key={w.id} onClick={() => startWorkout(w.id)} style={{ background: T.surface, padding: '24px', borderRadius: '28px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'left' }}>
+              <div style={{ color: w.color, fontWeight: '950', fontSize: '1.2em', letterSpacing: '-0.5px' }}>{w.name}</div>
+              <div style={{ color: T.subtext, fontSize: '0.7em', marginTop: '6px', fontWeight: '500' }}>{w.desc}</div>
             </button>
           ))}
         </div>
@@ -189,15 +214,19 @@ const TitanTracker = () => {
 
       {/* METRICS VIEW */}
       {view === 'metrics' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {history.length === 0 && <div style={{textAlign: 'center', color: T.subtext, marginTop: '40px', fontSize: '0.8em'}}>No data yet. Get training.</div>}
           {history.map((log, i) => (
-            <div key={i} style={{ background: T.surface, padding: '16px', borderRadius: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                <span style={{ fontWeight: '900' }}>{log.name}</span>
+            <div key={i} style={{ background: T.surface, padding: '18px', borderRadius: '22px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontWeight: '950', color: T.accent }}>{log.name}</span>
                 <span style={{ fontSize: '0.7em', color: T.subtext }}>{log.date}</span>
               </div>
               {log.details.map((d, j) => (
-                <div key={j} style={{ fontSize: '0.8em', color: T.subtext }}>{d.name}: {d.sets.length} sets</div>
+                <div key={j} style={{ fontSize: '0.8em', color: T.subtext, display: 'flex', justifyContent: 'space-between' }}>
+                  <span>{d.name}</span>
+                  <span>{d.sets.length} Sets</span>
+                </div>
               ))}
             </div>
           ))}
