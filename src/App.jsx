@@ -19,9 +19,34 @@ const TitanTracker = () => {
   ];
 
   const EXTRA_POOL = [
-    { id: "E1", name: "Bicep Curls", muscle: "Arms" }, { id: "E2", name: "Tricep Pushdown", muscle: "Arms" },
-    { id: "E3", name: "Lateral Raises", muscle: "Shoulders" }, { id: "E4", name: "Face Pulls", muscle: "Back" },
-    { id: "E5", name: "Calf Raises", muscle: "Legs" }, { id: "E6", name: "Hammer Curls", muscle: "Arms" }
+    // Cardio
+    { id: "C1", name: "Treadmill", muscle: "Cardio" },
+    { id: "C2", name: "Elliptical", muscle: "Cardio" },
+    { id: "C3", name: "Stationary Bike", muscle: "Cardio" },
+    { id: "C4", name: "Rowing Machine", muscle: "Cardio" },
+    { id: "C5", name: "Stair Climber", muscle: "Cardio" },
+    // Arms
+    { id: "E1", name: "Bicep Curls", muscle: "Arms" }, 
+    { id: "E2", name: "Tricep Pushdown", muscle: "Arms" },
+    { id: "E6", name: "Hammer Curls", muscle: "Arms" },
+    { id: "E7", name: "Preacher Curls", muscle: "Arms" },
+    { id: "E8", name: "Skull Crushers", muscle: "Arms" },
+    // Shoulders
+    { id: "E3", name: "Lateral Raises", muscle: "Shoulders" },
+    { id: "E9", name: "Shoulder Press", muscle: "Shoulders" },
+    { id: "E10", name: "Front Raises", muscle: "Shoulders" },
+    // Back
+    { id: "E4", name: "Face Pulls", muscle: "Back" },
+    { id: "E11", name: "Seated Row", muscle: "Back" },
+    { id: "E12", name: "Pull Ups", muscle: "Back" },
+    // Chest
+    { id: "E13", name: "Chest Fly", muscle: "Chest" },
+    { id: "E14", name: "Incline Press", muscle: "Chest" },
+    { id: "E15", name: "Push Ups", muscle: "Chest" },
+    // Legs
+    { id: "E5", name: "Calf Raises", muscle: "Legs" },
+    { id: "E16", name: "Leg Extension", muscle: "Legs" },
+    { id: "E17", name: "Lunges", muscle: "Legs" }
   ];
 
   // --- 2. STATE ---
@@ -51,7 +76,6 @@ const TitanTracker = () => {
     localStorage.setItem('titan_v71_engine', JSON.stringify({ history, accent, fontSize, bio }));
   }, [history, accent, fontSize, bio]);
 
-  // FIXED: Timer Logic moved to top-level and brackets secured
   useEffect(() => {
     let t;
     if (timeLeft > 0) {
@@ -77,7 +101,7 @@ const TitanTracker = () => {
   const getLastLog = (name) => {
     for (let entry of history) {
       const ex = entry.details?.find(d => d.name === name);
-      if (ex && ex.sets[0]) return `${ex.sets[0].w}kg x ${ex.sets[0].r}`;
+      if (ex && ex.sets[0]) return `${ex.sets[0].w}${ex.isCardio ? ' Lvl' : 'kg'} x ${ex.sets[0].r}${ex.isCardio ? 'm' : ''}`;
     }
     return "No history";
   };
@@ -123,8 +147,10 @@ const TitanTracker = () => {
     triggerHaptic([50, 30, 50]);
     const details = activeSession.list.map(ex => ({
       name: ex.name,
+      isCardio: ex.muscle === 'Cardio',
       sets: sessionData[ex.instanceId].filter(s => s.w > 0 || s.r > 0)
     })).filter(d => d.sets.length > 0);
+    
     const vol = details.reduce((acc, ex) => acc + ex.sets.reduce((sA, s) => sA + (s.w * s.r), 0), 0);
     setHistory([{ date: new Date().toLocaleDateString('en-GB'), name: activeSession.name, volume: vol, details }, ...history]);
     setActiveSession(null); 
@@ -181,93 +207,4 @@ const TitanTracker = () => {
                     <button onClick={() => { updateSet(ex.instanceId, i, 'w', 2.5); triggerHaptic(10); }} style={{ padding: '10px', border: 'none', background: 'none', color: T.accent }}><Plus size={14}/></button>
                   </div>
                   <div style={{ flex: 0.7, background: T.bg, borderRadius: '8px' }}>
-                    <input type="number" value={set.r} onChange={e => updateSet(ex.instanceId, i, 'r', parseInt(e.target.value) - set.r)} style={{ width: '100%', background: 'none', border: 'none', color: T.accent, textAlign: 'center', padding: '10px', fontWeight: '900' }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ))}
-          <div style={{ position: 'fixed', bottom: '25px', left: '20px', right: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', maxWidth: '460px', margin: '0 auto' }}>
-            <button onClick={() => setView('library')} style={{ background: T.surface, border: `2px solid ${T.accent}`, padding: '18px', borderRadius: '18px', color: T.accent, fontWeight: '900' }}>+ EXTRA</button>
-            <button onClick={finishSession} style={{ background: T.accent, border: 'none', padding: '18px', borderRadius: '18px', color: '#000', fontWeight: '950' }}>FINISH LOG</button>
-          </div>
-        </div>
-      )}
-
-      {/* VIEW: LIBRARY */}
-      {view === 'library' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <button onClick={() => setView('train')} style={{ background: 'none', border: 'none', color: T.accent, textAlign: 'left', fontWeight: '900' }}><ChevronLeft size={20} inline/> BACK</button>
-          <input type="text" placeholder="Search..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{ width: '100%', padding: '15px', borderRadius: '15px', background: T.surface, border: `1px solid ${T.accent}44`, color: '#FFF' }} />
-          {filteredLib.map(ex => (
-            <button key={ex.id} onClick={() => addExtra(ex)} style={{ background: T.surface, padding: '20px', borderRadius: '20px', border: 'none', color: '#FFF', textAlign: 'left', display: 'flex', justifyContent: 'space-between' }}>
-              <div><div style={{fontWeight: '900'}}>{ex.name}</div><div style={{fontSize: '0.7em', color: T.accent}}>{ex.muscle}</div></div>
-              <Plus size={20} color={T.accent}/>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* OTHER VIEWS */}
-      {view === 'biometrics' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div style={{ background: T.surface, padding: '20px', borderRadius: '20px' }}>
-            {['weight', 'height', 'age'].map(k => (
-              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
-                <span style={{textTransform: 'capitalize', fontWeight: '800'}}>{k}</span>
-                <input type="number" value={bio[k]} onChange={e => setBio({...bio, [k]: parseFloat(e.target.value)})} style={{ width: '80px', background: T.bg, border: 'none', color: T.accent, textAlign: 'center', padding: '8px', borderRadius: '8px', fontWeight: '900' }} />
-              </div>
-            ))}
-          </div>
-          <div style={{ background: T.accent, color: '#000', padding: '20px', borderRadius: '20px', display: 'flex', justifyContent: 'space-between' }}>
-            <div><div style={{fontSize: '0.7em', fontWeight: '900'}}>BMI</div><div style={{fontSize: '1.8em', fontWeight: '950'}}>{bmi}</div></div>
-            <div style={{textAlign: 'right'}}><div style={{fontSize: '0.7em', fontWeight: '900'}}>BMR</div><div style={{fontSize: '1.8em', fontWeight: '950'}}>{bmr}</div></div>
-          </div>
-        </div>
-      )}
-
-      {view === 'metrics' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div style={{ background: T.surface, padding: '20px', borderRadius: '24px', border: `1px solid ${T.border}` }}>
-            <div style={{ fontSize: '0.7em', fontWeight: '900', color: T.subtext, marginBottom: '10px' }}>VOLUME HISTORY</div>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', height: '80px' }}>
-              {history.slice(0, 5).reverse().map((h, i) => {
-                const max = Math.max(...history.map(x => x.volume)) || 1;
-                return <div key={i} style={{ flex: 1, background: T.accent, height: `${(h.volume/max)*100}%`, borderRadius: '4px' }} />;
-              })}
-            </div>
-          </div>
-          {history.map((h, i) => (
-            <div key={i} style={{ background: T.surface, padding: '15px', borderRadius: '15px', display: 'flex', justifyContent: 'space-between' }}>
-              <div><div style={{fontWeight: '900'}}>{h.name}</div><div style={{fontSize: '0.7em', opacity: 0.5}}>{h.date}</div></div>
-              <div style={{fontWeight: '950', color: T.accent}}>{h.volume.toLocaleString()}kg</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {view === 'settings' && (
-        <div style={{ background: T.surface, padding: '20px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-           <div>
-            <div style={{ fontWeight: '900', marginBottom: '10px' }}>Text Size: {fontSize}px</div>
-            <input type="range" min="14" max="22" value={fontSize} onChange={(e) => setFontSize(parseInt(e.target.value))} style={{ width: '100%', accentColor: T.accent }} />
-          </div>
-          <button onClick={() => { if(confirm("Clear data?")) { localStorage.clear(); window.location.reload(); }}} style={{ background: '#EF444422', color: '#EF4444', border: 'none', padding: '15px', borderRadius: '12px', fontWeight: '900' }}>RESET DATA</button>
-        </div>
-      )}
-
-      {/* TIMER MODAL */}
-      {timeLeft > 0 && (
-        <div onClick={() => setTimeLeft(0)} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.92)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: T.accent, color: '#000', padding: '60px', borderRadius: '50px', textAlign: 'center' }}>
-            <div style={{ fontSize: '5.5em', fontWeight: '950' }}>{timeLeft}s</div>
-            <div style={{ fontWeight: '900', letterSpacing: '2px' }}>RESTING</div>
-          </div>
-        </div>
-      )}
-
-    </div>
-  );
-};
-
-export default TitanTracker;
+                    <input type="number" value={set.r} onChange={e => updateSet(ex.instanceId, i, 'r', parseInt(e.
