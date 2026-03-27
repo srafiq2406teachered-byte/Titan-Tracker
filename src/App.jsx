@@ -1,247 +1,150 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Play, History, Settings, BarChart2, Calculator, ChevronLeft, 
-  Trash2, Activity, X, Timer, Plus, Minus, Zap
-} from 'lucide-react';
+import { Timer, CheckCircle2, Play, Pause, RotateCcw } from 'lucide-react';
 
-const TitanTracker = () => {
-  // --- 1. CONFIG & DATA ---
-  const WORKOUTS = {
-    SHRED: { id: 'SHRED', name: "SHRED PROTOCOL", rest: 45, ids: ["A1", "A2", "B1"], color: '#10B981' },
-    POWER: { id: 'POWER', name: "POWER PROTOCOL", rest: 90, ids: ["A1", "A2", "B1", "B2"], color: '#3B82F6' }
-  };
+const TitanUnifiedSession = () => {
+  // --- SESSION STATE ---
+  const [sessionActive, setSessionActive] = useState(true);
+  const [exercises, setExercises] = useState([
+    { id: 1, name: 'Bench Press', sets: 3, completed: 0, rest: 90 },
+    { id: 2, name: 'Incline DB Fly', sets: 3, completed: 0, rest: 60 },
+    { id: 3, name: 'Tricep Extensions', sets: 4, completed: 0, rest: 45 },
+  ]);
 
-  const EXERCISES = [
-    { id: "A1", name: "Leg Press", muscle: "Legs", type: "reps" }, 
-    { id: "A2", name: "Lat Pulldown", muscle: "Back", type: "reps" },
-    { id: "B1", name: "Chest Press", muscle: "Chest", type: "reps" }, 
-    { id: "B2", name: "Leg Curl", muscle: "Legs", type: "reps" }
-  ];
-
-  const EXTRA_POOL = [
-    { id: "C1", name: "Treadmill", muscle: "Cardio", type: "time" },
-    { id: "C2", name: "Elliptical", muscle: "Cardio", type: "time" },
-    { id: "C3", name: "Stationary Bike", muscle: "Cardio", type: "time" },
-    { id: "C4", name: "Rowing Machine", muscle: "Cardio", type: "time" },
-    { id: "C5", name: "Stair Climber", muscle: "Cardio", type: "time" },
-    { id: "E1", name: "Bicep Curls", muscle: "Arms", type: "reps" },
-    { id: "E2", name: "Tricep Pushdown", muscle: "Arms", type: "reps" },
-    { id: "E3", name: "Lateral Raises", muscle: "Shoulders", type: "reps" },
-    { id: "E4", name: "Face Pulls", muscle: "Back", type: "reps" },
-    { id: "E5", name: "Calf Raises", muscle: "Legs", type: "reps" }
-  ];
-
-  // --- 2. STATE ---
-  const [view, setView] = useState('menu'); 
-  const [history, setHistory] = useState([]);
-  const [activeSession, setActiveSession] = useState(null);
-  const [sessionData, setSessionData] = useState({}); 
+  // --- TIMER ENGINE STATE ---
   const [timeLeft, setTimeLeft] = useState(0);
-  const [accent, setAccent] = useState('#10B981');
-  const [bio, setBio] = useState({ weight: 80, height: 180, age: 30, sex: 'm' });
+  const [isActive, setIsActive] = useState(false);
+  const [totalWorkoutTime, setTotalWorkoutTime] = useState(0);
 
-  // --- 3. PERSISTENCE ---
+  // Global Workout Clock
   useEffect(() => {
-    const saved = localStorage.getItem('titan_v73_engine');
-    if (saved) {
-      const d = JSON.parse(saved);
-      if (d.history) setHistory(d.history);
-      if (d.accent) setAccent(d.accent);
-      if (d.bio) setBio(d.bio);
+    let interval = null;
+    if (sessionActive) {
+      interval = setInterval(() => {
+        setTotalWorkoutTime((prev) => prev + 1);
+      }, 1000);
     }
-  }, []);
+    return () => clearInterval(interval);
+  }, [sessionActive]);
 
+  // Rest Timer Logic
   useEffect(() => {
-    localStorage.setItem('titan_v73_engine', JSON.stringify({ history, accent, bio }));
-  }, [history, accent, bio]);
+    let timer = null;
+    if (isActive && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      setIsActive(false);
+      clearInterval(timer);
+    }
+    return () => clearInterval(timer);
+  }, [isActive, timeLeft]);
 
-  useEffect(() => {
-    let t;
-    if (timeLeft > 0) t = setInterval(() => setTimeLeft(p => p - 1), 1000);
-    return () => clearInterval(t);
-  }, [timeLeft]);
-
-  // --- 4. ENGINE LOGIC ---
-  const bmi = bio.height > 0 ? (bio.weight / ((bio.height / 100) ** 2)).toFixed(1) : 0;
-
-  const startWorkout = (id) => {
-    const p = WORKOUTS[id];
-    const list = EXERCISES.filter(ex => p.ids.includes(ex.id)).map(e => ({...e, instanceId: `${e.id}-${Date.now()}`}));
-    const initData = {};
-    // Default to 3 sets as requested
-    list.forEach(ex => { initData[ex.instanceId] = [{w:0, r:10}, {w:0, r:10}, {w:0, r:10}]; });
-    setSessionData(initData);
-    setActiveSession({ ...p, list });
-    setView('train');
+  // --- HANDLERS ---
+  const startRest = (seconds) => {
+    setTimeLeft(seconds);
+    setIsActive(true);
   };
 
-  const addSet = (instanceId) => {
-    setSessionData(prev => ({
-      ...prev,
-      [instanceId]: [...prev[instanceId], { w: 0, r: 10 }]
-    }));
+  const completeSet = (id, restTime) => {
+    setExercises(prev => prev.map(ex => 
+      ex.id === id ? { ...ex, completed: ex.completed + 1 } : ex
+    ));
+    startRest(restTime);
   };
 
-  const removeSet = (instanceId) => {
-    setSessionData(prev => {
-      if (prev[instanceId].length <= 1) return prev;
-      return { ...prev, [instanceId]: prev[instanceId].slice(0, -1) };
-    });
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const updateSet = (id, idx, field, val) => {
-    setSessionData(prev => {
-      const copy = { ...prev };
-      const set = { ...copy[id][idx] };
-      set[field] = Math.max(0, (parseFloat(set[field]) || 0) + val);
-      copy[id][idx] = set;
-      return copy;
-    });
-  };
-
-  const finishSession = () => {
-    const details = activeSession.list.map(ex => ({
-      name: ex.name,
-      type: ex.type,
-      sets: (sessionData[ex.instanceId] || []).filter(s => s.w > 0 || s.r > 0)
-    })).filter(d => d.sets.length > 0);
-    
-    const vol = details.reduce((acc, ex) => acc + ex.sets.reduce((sA, s) => sA + (s.w * s.r), 0), 0);
-    setHistory(prev => [{ date: new Date().toLocaleDateString('en-GB'), name: activeSession.name, volume: vol, details }, ...prev]);
-    setActiveSession(null); 
-    setView('metrics');
-  };
-
-  const T = { bg: '#050810', surface: '#111827', card: '#1F2937', accent, text: '#F9FAFB', subtext: '#9CA3AF' };
-
-  // --- 5. RENDER ---
   return (
-    <div style={{ background: T.bg, minHeight: '100vh', color: T.text, padding: '16px', fontFamily: 'sans-serif', maxWidth: '480px', margin: '0 auto', boxSizing: 'border-box' }}>
-      
-      {/* HEADER */}
-      {view !== 'library' && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h1 style={{ fontWeight: '950', fontSize: '1.2em', letterSpacing: '-1px' }}>TITAN<span style={{color: T.accent}}>+</span></h1>
-          <nav style={{ display: 'flex', background: T.surface, padding: '4px', borderRadius: '12px' }}>
-            {['menu', 'biometrics', 'metrics', 'settings'].map(v => (
-              <button key={v} onClick={() => setView(v)} style={{ border: 'none', padding: '10px', background: view === v ? T.card : 'transparent', color: view === v ? T.accent : T.subtext, borderRadius: '8px' }}>
-                {v === 'menu' && <Play size={18}/>}
-                {v === 'biometrics' && <Calculator size={18}/>}
-                {v === 'metrics' && <BarChart2 size={18}/>}
-                {v === 'settings' && <Settings size={18}/>}
+    <div className="max-w-md mx-auto p-4 bg-slate-900 text-white min-h-screen font-sans">
+      {/* HEADER: TOTAL TIME */}
+      <header className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
+        <h1 className="text-xl font-bold tracking-tight text-blue-400">TITAN+ UNIFIED</h1>
+        <div className="text-right">
+          <p className="text-xs text-slate-400 uppercase tracking-widest">Session Time</p>
+          <p className="text-lg font-mono">{formatTime(totalWorkoutTime)}</p>
+        </div>
+      </header>
+
+      {/* THE ENGINE SYNC (REST TIMER) overlay */}
+      <div className={`mb-8 p-6 rounded-2xl transition-all duration-300 ${isActive ? 'bg-blue-600 shadow-lg shadow-blue-500/20' : 'bg-slate-800'}`}>
+        <div className="flex items-center gap-3 mb-2">
+          <Timer className={isActive ? 'animate-pulse' : ''} size={20} />
+          <span className="text-sm font-semibold uppercase tracking-wider">Rest Engine</span>
+        </div>
+        
+        <div className="flex justify-between items-end">
+          <div className="text-5xl font-mono font-bold">
+            {formatTime(timeLeft)}
+          </div>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setIsActive(!isActive)}
+              className="p-2 bg-white/20 rounded-full hover:bg-white/30"
+            >
+              {isActive ? <Pause size={20} /> : <Play size={20} />}
+            </button>
+            <button 
+              onClick={() => {setIsActive(false); setTimeLeft(0);}}
+              className="p-2 bg-white/10 rounded-full"
+            >
+              <RotateCcw size={20} />
+            </button>
+          </div>
+        </div>
+        
+        {/* Metabolic Progress Bar */}
+        <div className="mt-4 h-1.5 w-full bg-black/20 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-white transition-all duration-1000 ease-linear"
+            style={{ width: timeLeft > 0 ? '100%' : '0%' }}
+          ></div>
+        </div>
+      </div>
+
+      {/* EXERCISE LIST */}
+      <div className="space-y-4">
+        {exercises.map((ex) => (
+          <div key={ex.id} className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-lg font-bold">{ex.name}</h3>
+                <p className="text-xs text-slate-400">{ex.sets} Sets • {ex.rest}s Rest</p>
+              </div>
+              <div className="text-blue-400 font-mono">
+                {ex.completed}/{ex.sets}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <div className="flex-1 bg-slate-900 rounded-lg p-2 text-center">
+                <p className="text-[10px] text-slate-500 uppercase">Weight</p>
+                <input type="number" className="bg-transparent w-full text-center font-bold focus:outline-none" placeholder="0" />
+              </div>
+              <div className="flex-1 bg-slate-900 rounded-lg p-2 text-center">
+                <p className="text-[10px] text-slate-500 uppercase">Reps</p>
+                <input type="number" className="bg-transparent w-full text-center font-bold focus:outline-none" placeholder="0" />
+              </div>
+              
+              <button 
+                onClick={() => completeSet(ex.id, ex.rest)}
+                disabled={ex.completed >= ex.sets}
+                className={`flex-none px-4 rounded-lg flex items-center justify-center transition-colors ${
+                  ex.completed >= ex.sets ? 'bg-emerald-500/20 text-emerald-500' : 'bg-blue-600 hover:bg-blue-500'
+                }`}
+              >
+                {ex.completed >= ex.sets ? <CheckCircle2 /> : <CheckCircle2 />}
               </button>
-            ))}
-          </nav>
-        </div>
-      )}
-
-      {/* VIEW: TRAIN (Set Management Restored) */}
-      {view === 'train' && activeSession && (
-        <div style={{ paddingBottom: '140px' }}>
-          {activeSession.list.map(ex => (
-            <div key={ex.instanceId} style={{ background: T.surface, padding: '16px', borderRadius: '18px', marginBottom: '15px', border: `1px solid rgba(255,255,255,0.05)` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <span style={{ fontWeight: '900', fontSize: '0.9em', textTransform: 'uppercase' }}>{ex.name}</span>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={() => addSet(ex.instanceId)} style={{ background: T.card, border: 'none', color: T.accent, borderRadius: '6px', padding: '4px' }}><Plus size={14}/></button>
-                  <button onClick={() => removeSet(ex.instanceId)} style={{ background: T.card, border: 'none', color: '#EF4444', borderRadius: '6px', padding: '4px' }}><Minus size={14}/></button>
-                  <button onClick={() => setActiveSession(p => ({...p, list: p.list.filter(i => i.instanceId !== ex.instanceId)}))} style={{ background: 'none', border: 'none', color: T.subtext }}><X size={16}/></button>
-                </div>
-              </div>
-
-              {sessionData[ex.instanceId]?.map((set, i) => (
-                <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                  <button onClick={() => setTimeLeft(activeSession.rest)} style={{ width: '38px', height: '38px', background: T.card, border: 'none', borderRadius: '8px', color: T.accent, fontWeight: '900' }}>{i+1}</button>
-                  <input type="number" placeholder={ex.type === 'time' ? 'LVL' : 'KG'} value={set.w || ''} onChange={e => updateSet(ex.instanceId, i, 'w', parseFloat(e.target.value) - (set.w || 0))} style={{ flex: 1, minWidth: '0', background: T.bg, border: 'none', color: '#FFF', textAlign: 'center', borderRadius: '8px', fontWeight: 'bold' }} />
-                  <input type="number" placeholder={ex.type === 'time' ? 'MIN' : 'REPS'} value={set.r || ''} onChange={e => updateSet(ex.instanceId, i, 'r', parseInt(e.target.value) - (set.r || 0))} style={{ flex: 1, minWidth: '0', background: T.bg, border: 'none', color: '#FFF', textAlign: 'center', borderRadius: '8px', fontWeight: 'bold' }} />
-                </div>
-              ))}
             </div>
-          ))}
-          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '20px', background: `linear-gradient(transparent, ${T.bg} 30%)`, display: 'flex', gap: '10px' }}>
-            <button onClick={() => setView('library')} style={{ flex: 1, padding: '16px', borderRadius: '14px', background: T.surface, color: '#FFF', border: 'none', fontWeight: 'bold' }}>+ EXERCISE</button>
-            <button onClick={finishSession} style={{ flex: 2, padding: '16px', borderRadius: '14px', background: T.accent, color: '#000', fontWeight: '900', border: 'none' }}>FINISH</button>
           </div>
-        </div>
-      )}
-
-      {/* VIEW: MENU */}
-      {view === 'menu' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {Object.values(WORKOUTS).map(w => (
-            <button key={w.id} onClick={() => startWorkout(w.id)} style={{ background: T.surface, padding: '30px', borderRadius: '24px', border: 'none', textAlign: 'left', color: '#FFF' }}>
-              <div style={{ color: w.color, fontWeight: '900', fontSize: '1.1em' }}>{w.name}</div>
-              <div style={{ fontSize: '0.7em', color: T.subtext, marginTop: '4px' }}>{w.rest}s REST INTERVAL</div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* VIEW: LIBRARY (Time detection fixed) */}
-      {view === 'library' && (
-        <div>
-          <button onClick={() => setView('train')} style={{ color: '#FFF', background: 'none', border: 'none', marginBottom: '20px' }}><ChevronLeft/></button>
-          {EXTRA_POOL.map(ex => (
-            <button key={ex.id} onClick={() => { 
-                const id = `${ex.id}-${Date.now()}`;
-                setActiveSession(p => ({...p, list: [...p.list, {...ex, instanceId: id}]}));
-                setSessionData(p => ({...p, [id]: [{w:0, r:10}, {w:0, r:10}, {w:0, r:10}]}));
-                setView('train');
-              }} style={{ width: '100%', background: T.surface, padding: '18px', borderRadius: '14px', color: '#FFF', border: 'none', marginBottom: '10px', textAlign: 'left', display: 'flex', justifyContent: 'space-between' }}>
-              <span>{ex.name}</span>
-              <span style={{color: T.accent, fontSize: '0.75em', fontWeight: 'bold'}}>{ex.type === 'time' ? 'TIME' : ex.muscle}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* VIEW: METRICS */}
-      {view === 'metrics' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {history.map((log, i) => (
-            <div key={i} style={{ background: T.surface, padding: '16px', borderRadius: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                <span style={{ fontWeight: 'bold' }}>{log.name}</span>
-                <span style={{ fontSize: '0.8em', color: T.subtext }}>{log.date}</span>
-              </div>
-              <div style={{ color: T.accent, fontSize: '0.9em', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <Zap size={14}/> {log.volume} Points
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* VIEW: BIOMETRICS */}
-      {view === 'biometrics' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div style={{ background: T.surface, padding: '40px', borderRadius: '24px', textAlign: 'center' }}>
-            <div style={{ color: T.subtext, fontSize: '0.8em', marginBottom: '5px' }}>BMI SCORE</div>
-            <div style={{ fontSize: '4em', fontWeight: '950', color: T.accent }}>{bmi}</div>
-          </div>
-        </div>
-      )}
-
-      {/* VIEW: SETTINGS */}
-      {view === 'settings' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {['weight', 'height', 'age'].map(f => (
-            <div key={f}>
-              <label style={{textTransform: 'capitalize', fontSize: '0.8em', marginLeft: '5px'}}>{f}</label>
-              <input type="number" value={bio[f]} onChange={e => setBio({...bio, [f]: e.target.value})} style={{ width: '100%', padding: '15px', background: T.surface, border: 'none', color: '#FFF', borderRadius: '12px', marginTop: '6px' }} />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* OVERLAY: TIMER */}
-      {timeLeft > 0 && (
-        <div style={{ position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', background: T.accent, color: '#000', padding: '12px 30px', borderRadius: '50px', fontWeight: '950', zBoxShadow: '0 10px 30px rgba(16,185,129,0.3)', zIndex: 1000 }}>
-          REST: {timeLeft}s
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 };
 
-export default TitanTracker;
+export default TitanUnifiedSession;
