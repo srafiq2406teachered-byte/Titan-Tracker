@@ -20,32 +20,30 @@ const TitanTracker = () => {
 
   const EXTRA_POOL = [
     { id: "E1", name: "Bicep Curls", muscle: "Arms" }, { id: "E2", name: "Tricep Pushdown", muscle: "Arms" },
-    { id: "E3", name: "Lateral Raises", muscle: "Shoulders" }, { id: "E4", name: "Face Pulls", muscle: "Back" }
+    { id: "E3", name: "Lateral Raises", muscle: "Shoulders" }, { id: "E4", name: "Face Pulls", muscle: "Back" },
+    { id: "E5", name: "Calf Raises", muscle: "Legs" }, { id: "E6", name: "Hammer Curls", muscle: "Arms" }
   ];
 
-  // --- 2. UNIFIED STATE ---
+  // --- 2. STATE ---
   const [view, setView] = useState('menu'); 
   const [history, setHistory] = useState([]);
   const [activeSession, setActiveSession] = useState(null);
-  const [sessionData, setSessionData] = useState({}); // Structured: { [instanceId]: [{w, r}, {w, r}, {w, r}] }
+  const [sessionData, setSessionData] = useState({}); 
   const [timeLeft, setTimeLeft] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [accent, setAccent] = useState('#10B981');
   const [fontSize, setFontSize] = useState(16);
   const [bio, setBio] = useState({ weight: 80, height: 180, age: 30, sex: 'm' });
 
-  // --- 3. UTILS & HAPTICS ---
-  const triggerHaptic = (type = 50) => {
-    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(type);
-  };
-
-  // --- 4. PERSISTENCE ---
+  // --- 3. PERSISTENCE & EFFECTS ---
   useEffect(() => {
     const saved = localStorage.getItem('titan_v71_engine');
     if (saved) {
       const d = JSON.parse(saved);
-      setHistory(d.history || []); setAccent(d.accent || '#10B981');
-      setFontSize(d.fontSize || 16); setBio(d.bio || { weight: 80, height: 180, age: 30, sex: 'm' });
+      if (d.history) setHistory(d.history);
+      if (d.accent) setAccent(d.accent);
+      if (d.fontSize) setFontSize(d.fontSize);
+      if (d.bio) setBio(d.bio);
     }
   }, []);
 
@@ -53,11 +51,28 @@ const TitanTracker = () => {
     localStorage.setItem('titan_v71_engine', JSON.stringify({ history, accent, fontSize, bio }));
   }, [history, accent, fontSize, bio]);
 
-  // --- 5. CALCULATIONS ---
-  const bmi = useMemo(() => (bio.weight / ((bio.height / 100) ** 2)).toFixed(1), [bio]);
-  const bmr = useMemo(() => bio.sex === 'm' 
+  // FIXED: Timer Logic moved to top-level and brackets secured
+  useEffect(() => {
+    let t;
+    if (timeLeft > 0) {
+      t = setInterval(() => {
+        setTimeLeft((p) => p - 1);
+      }, 1000);
+    }
+    return () => {
+      if (t) clearInterval(t);
+    };
+  }, [timeLeft]);
+
+  // --- 4. CALCULATIONS & UTILS ---
+  const triggerHaptic = (type = 50) => {
+    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(type);
+  };
+
+  const bmi = (bio.weight / ((bio.height / 100) ** 2)).toFixed(1);
+  const bmr = bio.sex === 'm' 
     ? Math.round(10 * bio.weight + 6.25 * bio.height - 5 * bio.age + 5) 
-    : Math.round(10 * bio.weight + 6.25 * bio.height - 5 * bio.age - 161), [bio]);
+    : Math.round(10 * bio.weight + 6.25 * bio.height - 5 * bio.age - 161);
 
   const getLastLog = (name) => {
     for (let entry of history) {
@@ -67,7 +82,12 @@ const TitanTracker = () => {
     return "No history";
   };
 
-  // --- 6. CORE ENGINES ---
+  const filteredLib = EXTRA_POOL.filter(ex => 
+    ex.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    ex.muscle.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // --- 5. LOGIC ENGINES ---
   const startWorkout = (id) => {
     triggerHaptic(100);
     const p = WORKOUTS[id];
@@ -79,10 +99,23 @@ const TitanTracker = () => {
     setView('train');
   };
 
+  const addExtra = (ex) => {
+    triggerHaptic(40);
+    const instanceId = `${ex.id}-${Date.now()}`;
+    setActiveSession(prev => ({ ...prev, list: [...prev.list, { ...ex, instanceId }] }));
+    setSessionData(prev => ({
+      ...prev,
+      [instanceId]: [{w:0, r:10}, {w:0, r:10}, {w:0, r:10}]
+    }));
+    setSearchQuery('');
+    setView('train');
+  };
+
   const updateSet = (instanceId, setIdx, field, val) => {
     const newData = { ...sessionData };
-    const currentVal = parseFloat(newData[instanceId][setIdx][field]) || 0;
-    newData[instanceId][setIdx][field] = Math.max(0, currentVal + val);
+    const currentSet = { ...newData[instanceId][setIdx] };
+    currentSet[field] = Math.max(0, (parseFloat(currentSet[field]) || 0) + val);
+    newData[instanceId][setIdx] = currentSet;
     setSessionData(newData);
   };
 
@@ -92,19 +125,15 @@ const TitanTracker = () => {
       name: ex.name,
       sets: sessionData[ex.instanceId].filter(s => s.w > 0 || s.r > 0)
     })).filter(d => d.sets.length > 0);
-
     const vol = details.reduce((acc, ex) => acc + ex.sets.reduce((sA, s) => sA + (s.w * s.r), 0), 0);
-    setHistory([{ 
-      date: new Date().toLocaleDateString('en-GB'), 
-      name: activeSession.name, 
-      volume: vol,
-      details 
-    }, ...history]);
-    setActiveSession(null); setView('metrics');
+    setHistory([{ date: new Date().toLocaleDateString('en-GB'), name: activeSession.name, volume: vol, details }, ...history]);
+    setActiveSession(null); 
+    setView('metrics');
   };
 
   const T = { bg: '#0A0F1E', surface: '#1E293B', card: '#334155', accent, text: '#F8FAFC', subtext: '#CBD5E1', border: 'rgba(255,255,255,0.1)' };
 
+  // --- 6. RENDER ---
   return (
     <div style={{ background: T.bg, minHeight: '100vh', color: T.text, padding: '20px', fontSize: `${fontSize}px`, fontFamily: 'sans-serif', maxWidth: '500px', margin: '0 auto', boxSizing: 'border-box' }}>
       
@@ -121,29 +150,38 @@ const TitanTracker = () => {
         </div>
       )}
 
-      {/* VIEW: TRAIN - REFINED UX */}
+      {/* VIEW: MENU */}
+      {view === 'menu' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {Object.values(WORKOUTS).map(w => (
+            <button key={w.id} onClick={() => startWorkout(w.id)} style={{ background: T.surface, padding: '30px', borderRadius: '24px', border: `1px solid ${T.border}`, textAlign: 'left' }}>
+              <div style={{ color: w.color, fontWeight: '950', fontSize: '1.3em' }}>{w.name}</div>
+              <div style={{ fontSize: '0.7em', color: T.subtext, marginTop: '5px' }}>START PROTOCOL</div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* VIEW: TRAIN */}
       {view === 'train' && activeSession && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', paddingBottom: '160px' }}>
           {activeSession.list.map((ex) => (
             <div key={ex.instanceId} style={{ background: T.surface, padding: '15px', borderRadius: '20px', border: `1px solid ${T.border}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                 <span style={{ fontWeight: '900' }}>{ex.name}</span>
-                <button onClick={() => { triggerHaptic(20); setActiveSession(p => ({...p, list: p.list.filter(i => i.instanceId !== ex.instanceId)})); }} style={{ background: 'none', border: 'none', color: '#EF4444' }}><Trash2 size={16}/></button>
+                <button onClick={() => setActiveSession(p => ({...p, list: p.list.filter(i => i.instanceId !== ex.instanceId)}))} style={{ background: 'none', border: 'none', color: '#EF4444' }}><Trash2 size={16}/></button>
               </div>
               <div style={{ fontSize: '0.7em', color: T.accent, fontWeight: '800', marginBottom: '12px' }}>LAST: {getLastLog(ex.name)}</div>
-              
               {sessionData[ex.instanceId]?.map((set, i) => (
                 <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
                   <button onClick={() => { setTimeLeft(activeSession.rest); triggerHaptic(30); }} style={{ width: '40px', height: '40px', background: T.card, border: 'none', borderRadius: '8px', color: T.accent, fontWeight: '900' }}>{i+1}</button>
-                  
                   <div style={{ flex: 1, display: 'flex', background: T.bg, borderRadius: '8px', overflow: 'hidden' }}>
                     <button onClick={() => updateSet(ex.instanceId, i, 'w', -2.5)} style={{ padding: '10px', border: 'none', background: 'none', color: T.subtext }}><Minus size={14}/></button>
                     <input type="number" value={set.w} onChange={e => updateSet(ex.instanceId, i, 'w', parseFloat(e.target.value) - set.w)} style={{ width: '100%', background: 'none', border: 'none', color: '#FFF', textAlign: 'center', fontWeight: '900' }} />
                     <button onClick={() => { updateSet(ex.instanceId, i, 'w', 2.5); triggerHaptic(10); }} style={{ padding: '10px', border: 'none', background: 'none', color: T.accent }}><Plus size={14}/></button>
                   </div>
-
-                  <div style={{ flex: 0.7, display: 'flex', background: T.bg, borderRadius: '8px', overflow: 'hidden' }}>
-                    <input type="number" value={set.r} onChange={e => updateSet(ex.instanceId, i, 'r', parseInt(e.target.value) - set.r)} style={{ width: '100%', background: 'none', border: 'none', color: T.accent, textAlign: 'center', fontWeight: '900' }} />
+                  <div style={{ flex: 0.7, background: T.bg, borderRadius: '8px' }}>
+                    <input type="number" value={set.r} onChange={e => updateSet(ex.instanceId, i, 'r', parseInt(e.target.value) - set.r)} style={{ width: '100%', background: 'none', border: 'none', color: T.accent, textAlign: 'center', padding: '10px', fontWeight: '900' }} />
                   </div>
                 </div>
               ))}
@@ -156,44 +194,24 @@ const TitanTracker = () => {
         </div>
       )}
 
-      {/* VIEW: METRICS - ADDED VOLUME CHART */}
-      {view === 'metrics' && (
+      {/* VIEW: LIBRARY */}
+      {view === 'library' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div style={{ background: T.surface, padding: '20px', borderRadius: '24px', border: `1px solid ${T.border}` }}>
-            <div style={{ fontSize: '0.7em', fontWeight: '900', color: T.subtext, marginBottom: '10px' }}>VOLUME TREND (LAST 5)</div>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', height: '100px', padding: '10px 0' }}>
-              {history.slice(0, 5).reverse().map((h, i) => {
-                const maxVol = Math.max(...history.map(x => x.volume)) || 1;
-                const height = (h.volume / maxVol) * 100;
-                return <div key={i} style={{ flex: 1, background: T.accent, height: `${height}%`, borderRadius: '4px 4px 0 0', opacity: 0.6 + (i * 0.1) }} />;
-              })}
-            </div>
-          </div>
-          <h3 style={{ fontWeight: '900' }}>HISTORY</h3>
-          {history.map((h, i) => (
-            <div key={i} style={{ background: T.surface, padding: '15px', borderRadius: '15px', display: 'flex', justifyContent: 'space-between' }}>
-              <div><div style={{fontWeight: '900'}}>{h.name}</div><div style={{fontSize: '0.7em', opacity: 0.5}}>{h.date}</div></div>
-              <div style={{fontWeight: '950', color: T.accent}}>{h.volume.toLocaleString()}kg</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* VIEW: BIOMETRICS & MENU (Kept for integrity) */}
-      {view === 'menu' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {Object.values(WORKOUTS).map(w => (
-            <button key={w.id} onClick={() => startWorkout(w.id)} style={{ background: T.surface, padding: '30px', borderRadius: '24px', border: `1px solid ${T.border}`, textAlign: 'left', cursor: 'pointer' }}>
-              <div style={{ color: w.color, fontWeight: '950', fontSize: '1.3em' }}>{w.name}</div>
-              <div style={{ fontSize: '0.7em', color: T.subtext, marginTop: '5px', letterSpacing: '1px' }}>CLICK TO COMMENCE</div>
+          <button onClick={() => setView('train')} style={{ background: 'none', border: 'none', color: T.accent, textAlign: 'left', fontWeight: '900' }}><ChevronLeft size={20} inline/> BACK</button>
+          <input type="text" placeholder="Search..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{ width: '100%', padding: '15px', borderRadius: '15px', background: T.surface, border: `1px solid ${T.accent}44`, color: '#FFF' }} />
+          {filteredLib.map(ex => (
+            <button key={ex.id} onClick={() => addExtra(ex)} style={{ background: T.surface, padding: '20px', borderRadius: '20px', border: 'none', color: '#FFF', textAlign: 'left', display: 'flex', justifyContent: 'space-between' }}>
+              <div><div style={{fontWeight: '900'}}>{ex.name}</div><div style={{fontSize: '0.7em', color: T.accent}}>{ex.muscle}</div></div>
+              <Plus size={20} color={T.accent}/>
             </button>
           ))}
         </div>
       )}
 
+      {/* OTHER VIEWS */}
       {view === 'biometrics' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-           <div style={{ background: T.surface, padding: '20px', borderRadius: '20px' }}>
+          <div style={{ background: T.surface, padding: '20px', borderRadius: '20px' }}>
             {['weight', 'height', 'age'].map(k => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
                 <span style={{textTransform: 'capitalize', fontWeight: '800'}}>{k}</span>
@@ -208,35 +226,45 @@ const TitanTracker = () => {
         </div>
       )}
 
-      {view === 'settings' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ background: T.surface, padding: '20px', borderRadius: '20px' }}>
-            <div style={{fontWeight: '900', marginBottom: '10px'}}>ACCENT COLOR</div>
-            <div style={{display: 'flex', gap: '15px'}}>
-              {Object.entries(THEMES).map(([name, hex]) => (
-                <div key={name} onClick={() => { setAccent(hex); triggerHaptic(10); }} style={{ width: '40px', height: '40px', borderRadius: '50%', background: hex, border: accent === hex ? '3px solid white' : 'none' }} />
-              ))}
+      {view === 'metrics' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ background: T.surface, padding: '20px', borderRadius: '24px', border: `1px solid ${T.border}` }}>
+            <div style={{ fontSize: '0.7em', fontWeight: '900', color: T.subtext, marginBottom: '10px' }}>VOLUME HISTORY</div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', height: '80px' }}>
+              {history.slice(0, 5).reverse().map((h, i) => {
+                const max = Math.max(...history.map(x => x.volume)) || 1;
+                return <div key={i} style={{ flex: 1, background: T.accent, height: `${(h.volume/max)*100}%`, borderRadius: '4px' }} />;
+              })}
             </div>
           </div>
-          <button onClick={() => { if(confirm("Wipe all logs?")) { localStorage.clear(); window.location.reload(); }}} style={{ background: '#EF444422', color: '#EF4444', border: 'none', padding: '20px', borderRadius: '15px', fontWeight: '900' }}>RESET ENGINE</button>
+          {history.map((h, i) => (
+            <div key={i} style={{ background: T.surface, padding: '15px', borderRadius: '15px', display: 'flex', justifyContent: 'space-between' }}>
+              <div><div style={{fontWeight: '900'}}>{h.name}</div><div style={{fontSize: '0.7em', opacity: 0.5}}>{h.date}</div></div>
+              <div style={{fontWeight: '950', color: T.accent}}>{h.volume.toLocaleString()}kg</div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* REST TIMER */}
+      {view === 'settings' && (
+        <div style={{ background: T.surface, padding: '20px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+           <div>
+            <div style={{ fontWeight: '900', marginBottom: '10px' }}>Text Size: {fontSize}px</div>
+            <input type="range" min="14" max="22" value={fontSize} onChange={(e) => setFontSize(parseInt(e.target.value))} style={{ width: '100%', accentColor: T.accent }} />
+          </div>
+          <button onClick={() => { if(confirm("Clear data?")) { localStorage.clear(); window.location.reload(); }}} style={{ background: '#EF444422', color: '#EF4444', border: 'none', padding: '15px', borderRadius: '12px', fontWeight: '900' }}>RESET DATA</button>
+        </div>
+      )}
+
+      {/* TIMER MODAL */}
       {timeLeft > 0 && (
-        <div onClick={() => { setTimeLeft(0); triggerHaptic(20); }} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.9)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: T.accent, color: '#000', padding: '60px', borderRadius: '50px', textAlign: 'center', boxShadow: `0 0 40px ${T.accent}44` }}>
-            <div style={{ fontSize: '5em', fontWeight: '950' }}>{timeLeft}s</div>
-            <div style={{ fontWeight: '900', letterSpacing: '2px' }}>BREATHE</div>
+        <div onClick={() => setTimeLeft(0)} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.92)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: T.accent, color: '#000', padding: '60px', borderRadius: '50px', textAlign: 'center' }}>
+            <div style={{ fontSize: '5.5em', fontWeight: '950' }}>{timeLeft}s</div>
+            <div style={{ fontWeight: '900', letterSpacing: '2px' }}>RESTING</div>
           </div>
         </div>
       )}
-
-      {useEffect(() => {
-        let t; if (timeLeft > 0) t = setInterval(() => setTimeLeft(p => p - 1), 1000);
-        if (timeLeft === 0 && t) triggerHaptic([100, 50, 100]);
-        return () => clearInterval(t);
-      }, [timeLeft])}
 
     </div>
   );
