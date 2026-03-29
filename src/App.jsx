@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Settings, Activity, Trash2, X, Info, Flame, ChevronLeft, BarChart3, Target, Zap } from 'lucide-react';
+import { Play, Settings, Activity, Trash2, X, Info, Flame, ChevronLeft, BarChart3, Plus } from 'lucide-react';
 
 const TitanTracker = () => {
-  // --- 1. DATA STRUCTURES ---
+  // --- 1. DATA ---
   const EX = {
     sq: { id: "sq", name: "Goblet Squat / Leg Press", muscle: "Quads", howTo: "Drive through heels. Keep chest up. Parallel depth." },
     bp: { id: "bp", name: "Flat Bench Press", muscle: "Chest", howTo: "Retract blades. Touch mid-chest. Drive feet." },
@@ -22,9 +22,9 @@ const TitanTracker = () => {
   };
 
   const RECOMP_PLAN = [
-    { id: 'wA', name: "WORKOUT A: FOUNDATION", list: [EX.sq, EX.bp, EX.row, EX.rdl, EX.lat] },
-    { id: 'wB', name: "WORKOUT B: STRUCTURAL", list: [EX.dl, EX.ohp, EX.lp, EX.le, EX.fp] },
-    { id: 'wC', name: "WORKOUT C: HYPERTROPHY", list: [EX.lun, EX.inc, EX.sr, EX.lc, EX.arm] }
+    { id: 'wA', name: "WORKOUT A", list: [EX.sq, EX.bp, EX.row, EX.rdl, EX.lat] },
+    { id: 'wB', name: "WORKOUT B", list: [EX.dl, EX.ohp, EX.lp, EX.le, EX.fp] },
+    { id: 'wC', name: "WORKOUT C", list: [EX.lun, EX.inc, EX.sr, EX.lc, EX.arm] }
   ];
 
   // --- 2. STATE ---
@@ -37,7 +37,7 @@ const TitanTracker = () => {
 
   // --- 3. PERSISTENCE ---
   useEffect(() => {
-    const saved = localStorage.getItem('titan_v19_intel');
+    const saved = localStorage.getItem('titan_v20_stable');
     if (saved) {
       const data = JSON.parse(saved);
       if (data.history) setHistory(data.history);
@@ -46,99 +46,110 @@ const TitanTracker = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('titan_v19_intel', JSON.stringify({ history, bio }));
+    localStorage.setItem('titan_v20_stable', JSON.stringify({ history, bio }));
   }, [history, bio]);
-
-  const startWorkout = (routine) => {
-    const list = routine.list.map(ex => ({ ...ex, instId: `${ex.id}-${Math.random()}` }));
-    setActiveSession({ ...routine, list });
-    setSessionData({});
-    setView('train');
-  };
 
   const T = { bg: '#020617', surf: '#0f172a', card: '#1e293b', acc: '#38bdf8', text: '#f8fafc', mute: '#94a3b8' };
 
   return (
     <div style={{ background: T.bg, minHeight: '100vh', color: T.text, padding: '12px', fontFamily: 'system-ui', maxWidth: '450px', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
       
-      {/* HEADER */}
+      {/* PERSISTENT HEADER */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-        <h1 style={{ fontWeight: '950', fontSize: '1.1em' }}>TITAN<span style={{color: T.acc}}>V19</span></h1>
+        <h1 style={{ fontWeight: '950', fontSize: '1.1em' }}>TITAN<span style={{color: T.acc}}>V20</span></h1>
         <div style={{ display: 'flex', background: T.surf, padding: '4px', borderRadius: '12px', border: `1px solid ${T.card}` }}>
           {[ {id:'menu', i:<Play size={18}/>}, {id:'intel', i:<BarChart3 size={18}/>}, {id:'settings', i:<Settings size={18}/>} ].map(n => (
-            <button key={n.id} onClick={() => setView(n.id)} style={{ border: 'none', background: (view === n.id && !activeSession) ? T.acc : 'transparent', color: (view === n.id && !activeSession) ? '#000' : T.acc, padding: '8px', borderRadius: '8px' }}>{n.i}</button>
+            <button key={n.id} onClick={() => { setView(n.id); if(n.id !== 'train') setActiveSession(null); }} style={{ border: 'none', background: view === n.id ? T.acc : 'transparent', color: view === n.id ? '#000' : T.acc, padding: '8px', borderRadius: '8px' }}>{n.i}</button>
           ))}
         </div>
       </div>
 
       <div style={{ flexGrow: 1, overflowY: 'auto', paddingBottom: '120px' }}>
         
-        {/* VIEW: TRAIN */}
-        {view === 'train' && activeSession && (
+        {/* VIEW: TRAIN (Workout in progress) */}
+        {activeSession && view === 'train' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <button onClick={() => { if(confirm('Exit?')) { setActiveSession(null); setView('menu'); } }} style={{ alignSelf: 'flex-start', background: T.card, border: 'none', color: T.text, padding: '8px', borderRadius: '8px' }}><ChevronLeft size={18}/></button>
+            <h2 style={{ fontSize: '1em', fontWeight: '900' }}>{activeSession.name}</h2>
             {activeSession.list.map(ex => (
               <div key={ex.instId} style={{ background: T.surf, padding: '15px', borderRadius: '20px', border: `1px solid ${T.card}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <div style={{ fontWeight: '900', fontSize: '0.85em' }}>{ex.name.toUpperCase()}</div>
                   <button onClick={() => setHowToEx(ex)} style={{ background: T.card, border: 'none', color: T.acc, padding: '5px', borderRadius: '50%' }}><Info size={16}/></button>
                 </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <input type="number" placeholder="KG" onChange={e => {
-                    const sets = sessionData[ex.instId] || [{w:'', r:''}];
-                    sets[0].w = e.target.value;
-                    setSessionData({...sessionData, [ex.instId]: [...sets]});
-                  }} style={{ width: '80px', background: T.bg, border: '1px solid #334155', borderRadius: '10px', color: '#fff', textAlign: 'center', padding: '10px' }} />
-                  <input type="number" placeholder="REPS" onChange={e => {
-                    const sets = sessionData[ex.instId] || [{w:'', r:''}];
-                    sets[0].r = e.target.value;
-                    setSessionData({...sessionData, [ex.instId]: [...sets]});
-                  }} style={{ width: '80px', background: T.bg, border: '1px solid #334155', borderRadius: '10px', color: '#fff', textAlign: 'center', padding: '10px' }} />
-                </div>
+
+                {/* THE REPS/WEIGHTS GRID */}
+                {(sessionData[ex.instId] || [{w:'', r:''}]).map((s, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                    <div style={{ width: '15px', fontSize: '0.6em', color: T.mute }}>{i+1}</div>
+                    <input type="number" placeholder="KG" value={s.w} onChange={e => {
+                      const sets = [...(sessionData[ex.instId] || [])];
+                      sets[i].w = e.target.value;
+                      setSessionData({...sessionData, [ex.instId]: sets});
+                    }} style={{ width: '100%', background: T.bg, border: '1px solid #334155', borderRadius: '10px', color: '#fff', textAlign: 'center', padding: '10px' }} />
+                    <input type="number" placeholder="REPS" value={s.r} onChange={e => {
+                      const sets = [...(sessionData[ex.instId] || [])];
+                      sets[i].r = e.target.value;
+                      setSessionData({...sessionData, [ex.instId]: sets});
+                    }} style={{ width: '100%', background: T.bg, border: '1px solid #334155', borderRadius: '10px', color: '#fff', textAlign: 'center', padding: '10px' }} />
+                  </div>
+                ))}
+
+                {/* RESTORED ADD SET BUTTON */}
+                <button onClick={() => {
+                  const s = sessionData[ex.instId] || [{w:'', r:''}];
+                  setSessionData({...sessionData, [ex.instId]: [...s, {w: s[s.length-1].w, r: ''}]});
+                }} style={{ width: '100%', padding: '10px', background: T.card, border: 'none', borderRadius: '12px', color: T.acc, fontSize: '0.7em', fontWeight: 'bold' }}>+ ADD SET</button>
               </div>
             ))}
           </div>
         )}
 
-        {/* VIEW: MENU */}
+        {/* VIEW: MENU (Select workout) */}
         {view === 'menu' && !activeSession && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {RECOMP_PLAN.map(r => (
-              <div key={r.id} onClick={() => startWorkout(r)} style={{ background: T.surf, padding: '20px', borderRadius: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontWeight: '900' }}>{r.name}</div>
-                <Play size={20} fill={T.acc} color={T.acc}/>
+              <div key={r.id} onClick={() => { 
+                const list = r.list.map(ex => ({ ...ex, instId: `${ex.id}-${Math.random()}` }));
+                setActiveSession({ ...r, list });
+                setView('train');
+              }} style={{ background: T.surf, padding: '20px', borderRadius: '24px', border: `1px solid ${T.card}`, display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontWeight: '900' }}>{r.name}</span>
+                <Play size={20} color={T.acc} />
               </div>
             ))}
           </div>
         )}
 
-        {/* VIEW: INTELLIGENCE (NEW PAGE) */}
+        {/* VIEW: INTEL (METRICS) */}
         {view === 'intel' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <h2 style={{ fontSize: '1.2em', fontWeight: '950', color: T.acc }}>CORE METRICS</h2>
-            
-            <div style={{ background: T.surf, padding: '20px', borderRadius: '24px', borderLeft: `4px solid ${T.acc}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', marginBottom: '10px' }}><Zap size={18}/> PROGRESSIVE VOLUME</div>
-              <p style={{ fontSize: '0.75em', color: T.mute, lineHeight: '1.6' }}>
-                **What it tells you:** The total work ($Sets \times Reps \times Load$) per muscle. <br/><br/>
-                **How to use:** For body recomp, this number must trend UP over months. If Volume goes up but Body Weight stays flat, you are adding muscle and losing fat.
-              </p>
+            <h2 style={{ fontSize: '1em', fontWeight: '900', color: T.acc }}>METRICS & INSIGHTS</h2>
+            <div style={{ background: T.surf, padding: '15px', borderRadius: '15px' }}>
+              <div style={{ fontWeight: 'bold', fontSize: '0.8em', marginBottom: '5px' }}>Total Tonnage</div>
+              <p style={{ fontSize: '0.7em', color: T.mute }}>Multiply weight by reps for every set. This measures the total 'work' done. Increasing this is the key to muscle growth.</p>
             </div>
-
-            <div style={{ background: T.surf, padding: '20px', borderRadius: '24px', borderLeft: `4px solid #818cf8` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', marginBottom: '10px' }}><Target size={18}/> RPE (EFFORT SCALE)</div>
-              <p style={{ fontSize: '0.75em', color: T.mute, lineHeight: '1.6' }}>
-                **What it tells you:** How many reps you had "in the tank." <br/><br/>
-                **How to use:** Aim for RPE 8-9 (1-2 reps left). If every set is RPE 10 (failure), you risk injury. If RPE is 5, you aren't stimulating muscle growth.
-              </p>
+            <div style={{ background: T.surf, padding: '15px', borderRadius: '15px' }}>
+              <div style={{ fontWeight: 'bold', fontSize: '0.8em', marginBottom: '5px' }}>RPE (Effort)</div>
+              <p style={{ fontSize: '0.7em', color: T.mute }}>Rate of Perceived Exertion. Aim for 8/10 (2 reps left in the tank) for the best recomp results.</p>
             </div>
+          </div>
+        )}
 
-            <div style={{ background: T.surf, padding: '20px', borderRadius: '24px', borderLeft: `4px solid #fbbf24` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', marginBottom: '10px' }}><Activity size={18}/> STRENGTH-TO-WEIGHT</div>
-              <p style={{ fontSize: '0.75em', color: T.mute, lineHeight: '1.6' }}>
-                **What it tells you:** Your relative power. <br/><br/>
-                **Calculation:** Max Lift ÷ Body Weight. This is the ultimate "Lean" indicator. As fat drops, this ratio climbs.
-              </p>
+        {/* VIEW: SETTINGS */}
+        {view === 'settings' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <div style={{ background: T.surf, padding: '20px', borderRadius: '24px' }}>
+              <h3 style={{ fontSize: '0.8em', marginBottom: '10px' }}>USER PROFILE</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                   <label style={{ fontSize: '0.6em', color: T.mute }}>AGE</label>
+                   <input type="number" value={bio.age} onChange={e => setBio({...bio, age: e.target.value})} style={{ width: '100%', background: T.bg, border: 'none', padding: '10px', borderRadius: '8px', color: '#fff' }} />
+                </div>
+                <div>
+                   <label style={{ fontSize: '0.6em', color: T.mute }}>WEIGHT (KG)</label>
+                   <input type="number" value={bio.weight} onChange={e => setBio({...bio, weight: e.target.value})} style={{ width: '100%', background: T.bg, border: 'none', padding: '10px', borderRadius: '8px', color: '#fff' }} />
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -150,18 +161,18 @@ const TitanTracker = () => {
         <div style={{ position: 'fixed', inset: 0, background: T.bg, zIndex: 1000, padding: '30px' }}>
           <button onClick={() => setHowToEx(null)} style={{ background: T.card, border: 'none', color: '#fff', padding: '10px', borderRadius: '10px' }}><X size={20}/></button>
           <h2 style={{ fontWeight: '950', fontSize: '1.5em', marginTop: '20px' }}>{howToEx.name}</h2>
-          <p style={{ marginTop: '20px', color: T.mute }}>{howToEx.howTo}</p>
+          <p style={{ marginTop: '20px', lineHeight: '1.6' }}>{howToEx.howTo}</p>
         </div>
       )}
 
-      {/* LOG BUTTON */}
-      {view === 'train' && activeSession && (
+      {/* FINISH BUTTON */}
+      {activeSession && view === 'train' && (
         <div style={{ position: 'fixed', bottom: 15, left: 15, right: 15 }}>
           <button onClick={() => {
             const details = activeSession.list.map(ex => ({ name: ex.name, sets: (sessionData[ex.instId] || []).filter(s => s.w && s.r) }));
             setHistory([{ date: new Date().toLocaleDateString(), name: activeSession.name, details }, ...history]);
             setActiveSession(null); setView('intel');
-          }} style={{ width: '100%', padding: '20px', background: T.acc, color: '#000', borderRadius: '20px', fontWeight: '950', border: 'none' }}>LOG & ANALYZE</button>
+          }} style={{ width: '100%', padding: '20px', background: T.acc, color: '#000', borderRadius: '20px', fontWeight: '950', border: 'none' }}>LOG WORKOUT</button>
         </div>
       )}
     </div>
