@@ -1,18 +1,30 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Play, Settings, Activity, Plus, Trash2, Dumbbell, Search, X, Check } from 'lucide-react';
+import { Play, Settings, Activity, Plus, Trash2, Dumbbell, Search, X, Info, Flame } from 'lucide-react';
 
 const TitanTracker = () => {
-  // --- 1. THE MASTER LIBRARY ---
-  const EXERCISE_LIBRARY = [
-    { id: "1", name: "Bench Press", muscle: "Chest", tier: 1 },
-    { id: "2", name: "Deadlift", muscle: "Back", tier: 1 },
-    { id: "3", name: "Squats", muscle: "Legs", tier: 1 },
-    { id: "4", name: "Military Press", muscle: "Shoulders", tier: 1 },
-    { id: "5", name: "Pull Ups", muscle: "Back", tier: 1 },
-    { id: "6", name: "Bicep Curls", muscle: "Arms", tier: 3 },
-    { id: "7", name: "Tricep Pushdown", muscle: "Arms", tier: 3 },
-    { id: "8", name: "Leg Press", muscle: "Legs", tier: 2 },
-    { id: "9", name: "Dumbbell Flys", muscle: "Chest", tier: 3 }
+  // --- 1. RECOMP PROGRAM & INSTRUCTIONS ---
+  const EX = {
+    sq: { id: "sq", name: "Goblet Squat / Leg Press", muscle: "Quads", tip: "Drive through heels. Keep chest up." },
+    bp: { id: "bp", name: "Flat Bench Press", muscle: "Chest", tip: "Retract shoulder blades. Touch mid-chest." },
+    row: { id: "row", name: "Chest Supported Row", muscle: "Back", tip: "Squeeze shoulder blades at the peak." },
+    rdl: { id: "rdl", name: "Romanian Deadlift", muscle: "Hamstrings", tip: "Hinge at hips. Feel the stretch." },
+    lat: { id: "lat", name: "Lateral Raises", muscle: "Shoulders", tip: "Lead with elbows. Slight forward lean." },
+    dl: { id: "dl", name: "Deadlift (Conventional)", muscle: "Full Body", tip: "Tight core. Pull the slack out of bar." },
+    ohp: { id: "ohp", name: "Overhead Press", muscle: "Shoulders", tip: "Glutes tight. Push head through at top." },
+    lp: { id: "lp", name: "Lat Pulldown", muscle: "Back", tip: "Pull to upper chest. Don't swing." },
+    le: { id: "le", name: "Leg Extensions", muscle: "Quads", tip: "Hold the squeeze for 1 second." },
+    fp: { id: "fp", name: "Face Pulls", muscle: "Rear Delts", tip: "Pull toward forehead. External rotation." },
+    lun: { id: "lun", name: "Walking Lunges", muscle: "Legs", tip: "Long steps for glutes, short for quads." },
+    inc: { id: "inc", name: "Incline Machine Press", muscle: "Upper Chest", tip: "Focus on the upper pec stretch." },
+    sr: { id: "sr", name: "Seated Cable Row", muscle: "Back", tip: "Don't use momentum. Controlled return." },
+    lc: { id: "lc", name: "Leg Curls", muscle: "Hamstrings", tip: "Keep hips glued to the bench." },
+    arm: { id: "arm", name: "Bicep/Tricep Superset", muscle: "Arms", tip: "No rest between the two exercises." }
+  };
+
+  const RECOMP_PLAN = [
+    { id: 'wA', name: "WORKOUT A: FOUNDATION", list: [EX.sq, EX.bp, EX.row, EX.rdl, EX.lat], desc: "Focus: Heavy compounds to spark metabolism." },
+    { id: 'wB', name: "WORKOUT B: STRUCTURAL", list: [EX.dl, EX.ohp, EX.lp, EX.le, EX.fp], desc: "Focus: Posterior chain and pulling power." },
+    { id: 'wC', name: "WORKOUT C: HYPERTROPHY", list: [EX.lun, EX.inc, EX.sr, EX.lc, EX.arm], desc: "Focus: High volume to maximize muscle pump." }
   ];
 
   // --- 2. STATE ---
@@ -22,36 +34,28 @@ const TitanTracker = () => {
   const [bio, setBio] = useState({ weight: 80, height: 180, age: 30, gender: 'male' });
   const [activeSession, setActiveSession] = useState(null);
   const [sessionData, setSessionData] = useState({});
-  const [searchQuery, setSearchQuery] = useState('');
   const [showLibrary, setShowLibrary] = useState(false);
 
-  // --- 3. RECOVERY & SYNC ---
+  // --- 3. RECOVERY ---
   useEffect(() => {
-    const v11 = localStorage.getItem('titan_v11_master');
-    const v12 = localStorage.getItem('titan_v12_final');
-    const v14 = localStorage.getItem('titan_v14_vault');
-    const v15 = localStorage.getItem('titan_v15_modular');
-    
-    const combined = JSON.parse(v15 || v14 || v12 || v11 || '{}');
-    if (combined.history) setHistory(combined.history);
-    if (combined.bio) setBio(combined.bio);
-    if (combined.unit) setUnit(combined.unit || 'metric');
+    const saved = localStorage.getItem('titan_v16_recomp');
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (data.history) setHistory(data.history);
+      if (data.bio) setBio(data.bio);
+      if (data.unit) setUnit(data.unit);
+    }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('titan_v15_modular', JSON.stringify({ history, bio, unit }));
+    localStorage.setItem('titan_v16_recomp', JSON.stringify({ history, bio, unit }));
   }, [history, bio, unit]);
 
-  // --- 4. LOGIC ---
-  const filteredLibrary = EXERCISE_LIBRARY.filter(ex => 
-    ex.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const addExerciseToWorkout = (ex) => {
-    const instId = `${ex.id}-${Math.random()}`;
-    setActiveSession(prev => ({ ...prev, list: [...prev.list, { ...ex, instId }] }));
-    setShowLibrary(false);
-    setSearchQuery('');
+  const startWorkout = (routine) => {
+    const list = routine.list.map(ex => ({ ...ex, instId: `${ex.id}-${Math.random()}` }));
+    setActiveSession({ ...routine, list });
+    setSessionData({});
+    setView('train');
   };
 
   const T = { bg: '#020617', surf: '#0f172a', card: '#1e293b', acc: '#38bdf8', text: '#f8fafc', mute: '#94a3b8' };
@@ -60,60 +64,34 @@ const TitanTracker = () => {
     <div style={{ background: T.bg, minHeight: '100vh', color: T.text, padding: '12px', fontFamily: 'system-ui', maxWidth: '450px', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
       
       {/* HEADER */}
-      {!showLibrary && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-          <h1 style={{ fontWeight: '950', fontSize: '1.1em' }}>TITAN<span style={{color: T.acc}}>V15</span></h1>
-          <div style={{ display: 'flex', background: T.surf, padding: '4px', borderRadius: '12px' }}>
-            {[ {id:'menu', i:<Play size={18}/>}, {id:'metrics', i:<Activity size={18}/>}, {id:'settings', i:<Settings size={18}/>} ].map(n => (
-              <button key={n.id} onClick={() => setView(n.id)} style={{ border: 'none', background: view === n.id ? T.acc : 'transparent', color: view === n.id ? '#000' : T.acc, padding: '8px', borderRadius: '8px' }}>{n.i}</button>
-            ))}
-          </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+        <h1 style={{ fontWeight: '950', fontSize: '1.1em' }}>TITAN<span style={{color: T.acc}}>V16</span></h1>
+        <div style={{ display: 'flex', background: T.surf, padding: '4px', borderRadius: '12px', border: `1px solid ${T.card}` }}>
+          {[ {id:'menu', i:<Play size={18}/>}, {id:'metrics', i:<Activity size={18}/>}, {id:'settings', i:<Settings size={18}/>} ].map(n => (
+            <button key={n.id} onClick={() => setView(n.id)} style={{ border: 'none', background: view === n.id ? T.acc : 'transparent', color: view === n.id ? '#000' : T.acc, padding: '8px', borderRadius: '8px' }}>{n.i}</button>
+          ))}
         </div>
-      )}
+      </div>
 
-      {/* SEARCH OVERLAY (RESTORED) */}
-      {showLibrary && (
-        <div style={{ position: 'fixed', inset: 0, background: T.bg, zIndex: 100, padding: '20px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-            <div style={{ flex: 1, background: T.surf, borderRadius: '12px', padding: '5px 15px', display: 'flex', alignItems: 'center' }}>
-              <Search size={18} color={T.mute} />
-              <input autoFocus placeholder="Find exercise..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{ background: 'none', border: 'none', color: '#fff', padding: '10px', width: '100%' }} />
-            </div>
-            <button onClick={() => setShowLibrary(false)} style={{ background: T.card, border: 'none', borderRadius: '12px', color: '#fff', padding: '10px' }}><X size={20}/></button>
-          </div>
-          <div style={{ overflowY: 'auto', flex: 1 }}>
-            {filteredLibrary.map(ex => (
-              <div key={ex.id} onClick={() => addExerciseToWorkout(ex)} style={{ background: T.surf, padding: '15px', borderRadius: '15px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: 'bold' }}>{ex.name}</span>
-                <span style={{ fontSize: '0.7em', color: T.acc }}>{ex.muscle}</span>
-              </div>
-            ))}
-            {searchQuery && !filteredLibrary.length && (
-              <button onClick={() => addExerciseToWorkout({ id: 'custom', name: searchQuery, muscle: 'Other' })} style={{ width: '100%', padding: '15px', background: T.acc, color: '#000', borderRadius: '15px', fontWeight: 'bold' }}>Add Custom: "{searchQuery}"</button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* MAIN VIEWS */}
       <div style={{ flexGrow: 1, overflowY: 'auto', paddingBottom: '120px' }}>
         
-        {/* TRAIN VIEW (WITH REPS FIX & ADD BUTTON) */}
+        {/* VIEW: TRAIN (RECOMP INSTRUCTIONS INCLUDED) */}
         {view === 'train' && activeSession && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-               <h2 style={{ fontSize: '1.1em', fontWeight: '900', color: T.acc }}>{activeSession.name}</h2>
-               <button onClick={() => setShowLibrary(true)} style={{ background: T.surf, border: `1px solid ${T.acc}`, color: T.acc, padding: '6px 12px', borderRadius: '10px', fontSize: '0.7em', fontWeight: 'bold' }}>+ ADD EXERCISE</button>
+            <div style={{ background: `linear-gradient(45deg, ${T.surf}, ${T.card})`, padding: '15px', borderRadius: '15px', borderLeft: `4px solid ${T.acc}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: T.acc, fontWeight: 'bold', fontSize: '0.7em', marginBottom: '4px' }}>
+                <Info size={14}/> COACH'S FOCUS
+              </div>
+              <div style={{ fontSize: '0.8em', fontWeight: '500' }}>{activeSession.desc}</div>
             </div>
 
             {activeSession.list.map(ex => (
               <div key={ex.instId} style={{ background: T.surf, padding: '15px', borderRadius: '20px', border: `1px solid ${T.card}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span style={{ fontWeight: '900', fontSize: '0.85em' }}>{ex.name.toUpperCase()}</span>
-                  <button onClick={() => setActiveSession(s => ({ ...s, list: s.list.filter(item => item.instId !== ex.instId) }))} style={{ color: '#ef4444', background: 'none', border: 'none' }}><Trash2 size={16}/></button>
+                <div style={{ marginBottom: '10px' }}>
+                  <div style={{ fontWeight: '900', fontSize: '0.85em', color: '#fff' }}>{ex.name.toUpperCase()}</div>
+                  <div style={{ fontSize: '0.65em', color: T.acc, fontWeight: 'bold' }}>Tip: {ex.tip}</div>
                 </div>
 
-                {/* THE FIXED REPS GRID */}
                 <div style={{ display: 'flex', gap: '10px', marginBottom: '4px', paddingLeft: '30px' }}>
                   <span style={{ width: '80px', fontSize: '0.5em', color: T.mute }}>{unit === 'metric' ? 'KG' : 'LB'}</span>
                   <span style={{ width: '80px', fontSize: '0.5em', color: T.mute }}>REPS</span>
@@ -137,22 +115,28 @@ const TitanTracker = () => {
                 <button onClick={() => {
                   const s = sessionData[ex.instId] || [];
                   setSessionData({...sessionData, [ex.instId]: [...s, {w: s[s.length-1]?.w || '', r: ''}]});
-                }} style={{ width: '100%', padding: '10px', background: T.card, border: 'none', borderRadius: '12px', color: T.mute, fontSize: '0.7em' }}>+ SET</button>
+                }} style={{ width: '100%', padding: '10px', background: T.card, border: 'none', borderRadius: '12px', color: T.mute, fontSize: '0.7em' }}>+ ADD SET</button>
               </div>
             ))}
           </div>
         )}
 
-        {/* MENU: STARTING POINT */}
+        {/* VIEW: MENU (RECOMP PROGRAMS) */}
         {view === 'menu' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <div onClick={() => { setActiveSession({ name: 'Free Session', list: [] }); setView('train'); }} style={{ background: T.acc, padding: '30px', borderRadius: '30px', textAlign: 'center', color: '#000', cursor: 'pointer' }}>
-               <div style={{ fontWeight: '950', fontSize: '1.2em' }}>START EMPTY WORKOUT</div>
-               <div style={{ fontSize: '0.7em', fontWeight: 'bold' }}>Add exercises as you go</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ background: `linear-gradient(135deg, ${T.acc}, #818cf8)`, padding: '25px', borderRadius: '28px', color: '#000' }}>
+              <div style={{ fontWeight: '950', fontSize: '1.2em' }}>TITAN RECOMP</div>
+              <div style={{ fontSize: '0.7em', fontWeight: 'bold', opacity: 0.9 }}>3-Day Machine & Free Weight Cycle</div>
             </div>
-            <h3 style={{ fontSize: '0.7em', color: T.mute, fontWeight: '900' }}>HISTORY RECOVERED: {history.length} ITEMS</h3>
-            {history.slice(0,3).map((h, i) => (
-              <div key={i} style={{ background: T.surf, padding: '15px', borderRadius: '15px', opacity: 0.6, fontSize: '0.8em' }}>{h.date} - {h.name}</div>
+            
+            {RECOMP_PLAN.map(r => (
+              <div key={r.id} onClick={() => startWorkout(r)} style={{ background: T.surf, padding: '20px', borderRadius: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px solid ${T.card}` }}>
+                <div>
+                  <div style={{ fontSize: '0.55em', color: T.acc, fontWeight: '900', letterSpacing: '1px' }}>RECOMP PROTOCOL</div>
+                  <div style={{ fontWeight: '900' }}>{r.name}</div>
+                </div>
+                <Flame size={20} fill={T.acc} color={T.acc}/>
+              </div>
             ))}
           </div>
         )}
@@ -165,8 +149,8 @@ const TitanTracker = () => {
           <button onClick={() => {
             const details = activeSession.list.map(ex => ({ name: ex.name, sets: (sessionData[ex.instId] || []).filter(s => s.w && s.r) }));
             setHistory([{ date: new Date().toLocaleDateString(), name: activeSession.name, details }, ...history]);
-            setActiveSession(null); setView('menu');
-          }} style={{ width: '100%', padding: '20px', background: T.acc, color: '#000', borderRadius: '20px', fontWeight: '950', border: 'none' }}>LOG WORKOUT</button>
+            setActiveSession(null); setView('metrics');
+          }} style={{ width: '100%', padding: '20px', background: T.acc, color: '#000', borderRadius: '20px', fontWeight: '950', border: 'none', boxShadow: '0 0 25px rgba(56, 189, 248, 0.4)' }}>LOG PERFORMANCE</button>
         </div>
       )}
 
