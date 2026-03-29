@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Play, Settings, Activity, Plus, Trash2, Dumbbell, Search, X, Info, Flame } from 'lucide-react';
+import { Play, Settings, Activity, Plus, Trash2, Dumbbell, Search, X, Info, Flame, ChevronLeft } from 'lucide-react';
 
 const TitanTracker = () => {
-  // --- 1. RECOMP PROGRAM & INSTRUCTIONS ---
+  // --- 1. RECOMP PROGRAM DATA ---
   const EX = {
     sq: { id: "sq", name: "Goblet Squat / Leg Press", muscle: "Quads", tip: "Drive through heels. Keep chest up." },
     bp: { id: "bp", name: "Flat Bench Press", muscle: "Chest", tip: "Retract shoulder blades. Touch mid-chest." },
@@ -34,11 +34,10 @@ const TitanTracker = () => {
   const [bio, setBio] = useState({ weight: 80, height: 180, age: 30, gender: 'male' });
   const [activeSession, setActiveSession] = useState(null);
   const [sessionData, setSessionData] = useState({});
-  const [showLibrary, setShowLibrary] = useState(false);
 
-  // --- 3. RECOVERY ---
+  // --- 3. PERSISTENCE ---
   useEffect(() => {
-    const saved = localStorage.getItem('titan_v16_recomp');
+    const saved = localStorage.getItem('titan_v17_nav');
     if (saved) {
       const data = JSON.parse(saved);
       if (data.history) setHistory(data.history);
@@ -48,7 +47,7 @@ const TitanTracker = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('titan_v16_recomp', JSON.stringify({ history, bio, unit }));
+    localStorage.setItem('titan_v17_nav', JSON.stringify({ history, bio, unit }));
   }, [history, bio, unit]);
 
   const startWorkout = (routine) => {
@@ -63,33 +62,44 @@ const TitanTracker = () => {
   return (
     <div style={{ background: T.bg, minHeight: '100vh', color: T.text, padding: '12px', fontFamily: 'system-ui', maxWidth: '450px', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
       
-      {/* HEADER */}
+      {/* GLOBAL HEADER */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-        <h1 style={{ fontWeight: '950', fontSize: '1.1em' }}>TITAN<span style={{color: T.acc}}>V16</span></h1>
-        <div style={{ display: 'flex', background: T.surf, padding: '4px', borderRadius: '12px', border: `1px solid ${T.card}` }}>
-          {[ {id:'menu', i:<Play size={18}/>}, {id:'metrics', i:<Activity size={18}/>}, {id:'settings', i:<Settings size={18}/>} ].map(n => (
-            <button key={n.id} onClick={() => setView(n.id)} style={{ border: 'none', background: view === n.id ? T.acc : 'transparent', color: view === n.id ? '#000' : T.acc, padding: '8px', borderRadius: '8px' }}>{n.i}</button>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* THE NEW BACK BUTTON */}
+          {activeSession && view === 'train' && (
+            <button onClick={() => { if(confirm('Discard this session?')) { setActiveSession(null); setView('menu'); } }} style={{ background: T.card, border: 'none', color: T.text, padding: '6px', borderRadius: '8px' }}>
+              <ChevronLeft size={20}/>
+            </button>
+          )}
+          <h1 style={{ fontWeight: '950', fontSize: '1.1em' }}>TITAN<span style={{color: T.acc}}>V17</span></h1>
         </div>
+        
+        {/* VIEW TOGGLES (Hidden during training to focus) */}
+        {!activeSession && (
+          <div style={{ display: 'flex', background: T.surf, padding: '4px', borderRadius: '12px', border: `1px solid ${T.card}` }}>
+            {[ {id:'menu', i:<Play size={18}/>}, {id:'metrics', i:<Activity size={18}/>}, {id:'settings', i:<Settings size={18}/>} ].map(n => (
+              <button key={n.id} onClick={() => setView(n.id)} style={{ border: 'none', background: view === n.id ? T.acc : 'transparent', color: view === n.id ? '#000' : T.acc, padding: '8px', borderRadius: '8px' }}>{n.i}</button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={{ flexGrow: 1, overflowY: 'auto', paddingBottom: '120px' }}>
         
-        {/* VIEW: TRAIN (RECOMP INSTRUCTIONS INCLUDED) */}
+        {/* VIEW: TRAIN */}
         {view === 'train' && activeSession && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ background: `linear-gradient(45deg, ${T.surf}, ${T.card})`, padding: '15px', borderRadius: '15px', borderLeft: `4px solid ${T.acc}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: T.acc, fontWeight: 'bold', fontSize: '0.7em', marginBottom: '4px' }}>
-                <Info size={14}/> COACH'S FOCUS
-              </div>
-              <div style={{ fontSize: '0.8em', fontWeight: '500' }}>{activeSession.desc}</div>
+              <div style={{ color: T.acc, fontWeight: 'bold', fontSize: '0.7em', marginBottom: '4px' }}>CURRENT PROGRAM</div>
+              <div style={{ fontWeight: '900', fontSize: '1em' }}>{activeSession.name}</div>
+              <div style={{ fontSize: '0.75em', color: T.mute, marginTop: '4px' }}>{activeSession.desc}</div>
             </div>
 
             {activeSession.list.map(ex => (
               <div key={ex.instId} style={{ background: T.surf, padding: '15px', borderRadius: '20px', border: `1px solid ${T.card}` }}>
                 <div style={{ marginBottom: '10px' }}>
-                  <div style={{ fontWeight: '900', fontSize: '0.85em', color: '#fff' }}>{ex.name.toUpperCase()}</div>
-                  <div style={{ fontSize: '0.65em', color: T.acc, fontWeight: 'bold' }}>Tip: {ex.tip}</div>
+                  <div style={{ fontWeight: '900', fontSize: '0.85em' }}>{ex.name.toUpperCase()}</div>
+                  <div style={{ fontSize: '0.65em', color: T.acc }}>{ex.tip}</div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px', marginBottom: '4px', paddingLeft: '30px' }}>
@@ -121,36 +131,53 @@ const TitanTracker = () => {
           </div>
         )}
 
-        {/* VIEW: MENU (RECOMP PROGRAMS) */}
+        {/* VIEW: MENU */}
         {view === 'menu' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ background: `linear-gradient(135deg, ${T.acc}, #818cf8)`, padding: '25px', borderRadius: '28px', color: '#000' }}>
-              <div style={{ fontWeight: '950', fontSize: '1.2em' }}>TITAN RECOMP</div>
-              <div style={{ fontSize: '0.7em', fontWeight: 'bold', opacity: 0.9 }}>3-Day Machine & Free Weight Cycle</div>
+            <div style={{ background: T.acc, padding: '25px', borderRadius: '28px', color: '#000' }}>
+              <div style={{ fontWeight: '950', fontSize: '1.2em' }}>START SESSION</div>
+              <div style={{ fontSize: '0.7em', fontWeight: 'bold' }}>3 Day Full Body Recomp Protocol</div>
             </div>
             
             {RECOMP_PLAN.map(r => (
               <div key={r.id} onClick={() => startWorkout(r)} style={{ background: T.surf, padding: '20px', borderRadius: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px solid ${T.card}` }}>
                 <div>
-                  <div style={{ fontSize: '0.55em', color: T.acc, fontWeight: '900', letterSpacing: '1px' }}>RECOMP PROTOCOL</div>
+                  <div style={{ fontSize: '0.55em', color: T.acc, fontWeight: '900' }}>ACTIVE PROGRAM</div>
                   <div style={{ fontWeight: '900' }}>{r.name}</div>
                 </div>
-                <Flame size={20} fill={T.acc} color={T.acc}/>
+                <Play size={20} fill={T.acc} color={T.acc}/>
               </div>
             ))}
           </div>
         )}
 
+        {/* VIEW: METRICS */}
+        {view === 'metrics' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+             <h3 style={{ fontSize: '0.8em', color: T.acc, fontWeight: '900' }}>SESSION LOGS</h3>
+             {history.length === 0 ? (
+               <div style={{ color: T.mute, fontSize: '0.7em', textAlign: 'center', marginTop: '20px' }}>No workouts logged yet.</div>
+             ) : (
+               history.map((h, i) => (
+                 <div key={i} style={{ background: T.surf, padding: '15px', borderRadius: '15px' }}>
+                   <div style={{ fontSize: '0.8em', fontWeight: 'bold' }}>{h.name}</div>
+                   <div style={{ fontSize: '0.6em', color: T.mute }}>{h.date}</div>
+                 </div>
+               ))
+             )}
+          </div>
+        )}
+
       </div>
 
-      {/* FINISH BUTTON */}
+      {/* LOG WORKOUT FOOTER */}
       {view === 'train' && activeSession && (
         <div style={{ position: 'fixed', bottom: 15, left: 15, right: 15 }}>
           <button onClick={() => {
             const details = activeSession.list.map(ex => ({ name: ex.name, sets: (sessionData[ex.instId] || []).filter(s => s.w && s.r) }));
             setHistory([{ date: new Date().toLocaleDateString(), name: activeSession.name, details }, ...history]);
-            setActiveSession(null); setView('metrics');
-          }} style={{ width: '100%', padding: '20px', background: T.acc, color: '#000', borderRadius: '20px', fontWeight: '950', border: 'none', boxShadow: '0 0 25px rgba(56, 189, 248, 0.4)' }}>LOG PERFORMANCE</button>
+            setActiveSession(null); setView('menu');
+          }} style={{ width: '100%', padding: '20px', background: T.acc, color: '#000', borderRadius: '20px', fontWeight: '950', border: 'none' }}>COMPLETE & LOG</button>
         </div>
       )}
 
